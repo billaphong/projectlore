@@ -118,5 +118,18 @@ reimplementing their semantics. Local and pre-commit results are explicitly
 protected branch. Hosted CI configuration is not generated or modified without
 repository-specific authorization.
 
+`lore integration check MODEL [--evidence EVIDENCE.json]` reports the highest
+contiguously proven assurance state and every missing requirement. The only
+states are `available`, `hook_active`, `local_gate_passed`, `ci_gate_passed`,
+and `protected_gate_enforced`. The command works offline and reports
+`available` without an evidence file. Optional protected-gate verification is
+read-only and requires separately authorized hosted credentials; ProjectLore
+does not acquire or infer those credentials. Protected enforcement requires a
+fresh accessible observation naming the repository, branch, required hosted
+check, non-bypass policy, configuration revision/time, and the verifier's
+`repository:read` and `rules:read` permission scopes. Missing, stale, or
+insufficient hosted evidence remains indeterminate and never promotes the
+reported state.
+
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.

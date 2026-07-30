@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from projectlore import __version__
+from projectlore.assurance_report import IntegrationEvidence, assess_assurance
 from projectlore.doctor import run_doctor
 from projectlore.evaluation import evaluate_once
 from projectlore.integration import apply_instruction_previews, instruction_previews
@@ -90,6 +91,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Preview managed AGENTS.md and CLAUDE.md instruction blocks.",
     )
     integrate.add_argument("--apply", action="store_true")
+
+    integration = subparsers.add_parser(
+        "integration",
+        help="Inspect achieved integration assurance.",
+    )
+    integration_subparsers = integration.add_subparsers(
+        dest="integration_command", required=True
+    )
+    integration_check = integration_subparsers.add_parser(
+        "check",
+        help="Report achieved assurance and explicit missing requirements.",
+    )
+    integration_check.add_argument("model", type=Path)
+    integration_check.add_argument("--evidence", type=Path)
 
     trust = subparsers.add_parser(
         "trust",
@@ -211,6 +226,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             apply_instruction_previews(previews)
         print(json.dumps(result, indent=2))
         return 0
+
+    if args.command == "integration":
+        try:
+            service = ModelService(args.model)
+            evidence = (
+                IntegrationEvidence.model_validate_json(
+                    args.evidence.read_text(encoding="utf-8")
+                )
+                if args.evidence is not None
+                else None
+            )
+        except (FileNotFoundError, OSError, ValueError, InvalidModelError) as error:
+            parser.error(str(error))
+        assurance_report = assess_assurance(service.project.digest, evidence)
+        print(json.dumps(assurance_report.model_dump(mode="json"), indent=2))
+        return 0 if not assurance_report.missing_requirements else 2
 
     if args.command == "trust":
         if not args.confirm_reviewed:
