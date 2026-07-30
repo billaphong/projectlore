@@ -1,0 +1,95 @@
+{
+  "evaluation_id": "sienna-campaign-authority-v1-after",
+  "run_at": "2026-07-30T17:51:03.835092+00:00",
+  "corpus": "evaluations/sienna-campaign-authority/corpus.yaml",
+  "model": "examples/sienna.campaign-authority.project.yaml",
+  "scope_authority_ref": "fraimed://frame/019fb0b0-4f6a-7f27-8625-44f8fb5ccdc0",
+  "measurements": {
+    "retrieval_success": {
+      "successful": 3,
+      "total": 3
+    },
+    "provenance_correctness": {
+      "correct": 3,
+      "total": 3
+    },
+    "policy_catch_rate": {
+      "caught": 2,
+      "violations": 2
+    },
+    "policy_false_positive_rate": {
+      "false_positives": 0,
+      "compliant_cases": 2
+    },
+    "correction_rediscovery": {
+      "rediscovered": 2,
+      "total": 2
+    },
+    "latency_ms": {
+      "p50": 0.0663,
+      "p95": 0.1586
+    },
+    "context_size_bytes": {
+      "p50": 5952,
+      "p95": 5957.0
+    },
+    "maintenance": {
+      "model_lines": 158
+    }
+  },
+  "thresholds": {
+    "retrieval_success_min": 3,
+    "provenance_correctness_min": 3,
+    "policy_catch_rate_min": 2,
+    "policy_false_positives_max": 0,
+    "correction_rediscovery_min": 2,
+    "latency_p95_ms_max": 100,
+    "context_size_p95_bytes_max": 16384,
+    "model_lines_max": 220,
+    "compliant_case_count": 2
+  },
+  "question_results": [
+    {
+      "id": "q1",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q2",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q3",
+      "rules_ok": true,
+      "sources_ok": true
+    }
+  ],
+  "policy_results": [
+    {
+      "id": "p1-command-boundary-violation",
+      "decision": "fail",
+      "outcome": "reject_unauthorized_mutation",
+      "outcome_ok": true
+    },
+    {
+      "id": "p2-command-boundary-compliant",
+      "decision": "pass",
+      "outcome": "no_finding",
+      "outcome_ok": true
+    },
+    {
+      "id": "p3-replay-violation",
+      "decision": "fail",
+      "outcome": "nondeterministic_replay",
+      "outcome_ok": true
+    },
+    {
+      "id": "p4-replay-compliant",
+      "decision": "pass",
+      "outcome": "no_finding",
+      "outcome_ok": true
+    }
+  ],
+  "passed": true
+}

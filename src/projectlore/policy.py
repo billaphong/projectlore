@@ -1,7 +1,8 @@
-"""Built-in deterministic policy checkers for the Homebrew pilot."""
+"""Operator-authored deterministic policy bindings shared by every client."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
@@ -17,6 +18,98 @@ PolicyDecision = Literal["pass", "fail", "not_applicable", "indeterminate"]
 CALIBRATION_RULE = "lore:homebrew/rule/calibration-predates-forecast"
 ISSUE_RULE = "lore:homebrew/rule/forecast-issued-by-snapshot"
 HORIZON_RULE = "lore:homebrew/rule/demand-covers-safety-lookahead"
+SIENNA_COMMAND_RULE = "lore:sienna/rule/authoritative-command-boundary"
+SIENNA_REPLAY_RULE = "lore:sienna/rule/deterministic-replay"
+
+
+@dataclass(frozen=True)
+class PolicyBinding:
+    """Trusted runtime semantics; canonical model text cannot make code executable."""
+
+    rule_id: str
+    left_fact: str
+    relation: Literal["lte", "equal"]
+    right_fact: str | None
+    right_literal: str | None
+    value_type: Literal["datetime", "string"]
+    failure_outcome: str
+    failure_message: str
+
+    def __post_init__(self) -> None:
+        if (self.right_fact is None) == (self.right_literal is None):
+            raise ValueError(
+                "A policy binding requires exactly one right-hand operand."
+            )
+
+
+class PolicyRegistry:
+    """Immutable operator-owned registry of deterministic rule bindings."""
+
+    def __init__(self, bindings: tuple[PolicyBinding, ...]) -> None:
+        entries = {binding.rule_id: binding for binding in bindings}
+        if len(entries) != len(bindings):
+            raise ValueError("Policy binding rule IDs must be unique.")
+        self._bindings = tuple(bindings)
+
+    @property
+    def bindings(self) -> tuple[PolicyBinding, ...]:
+        return self._bindings
+
+
+DEFAULT_POLICY_REGISTRY = PolicyRegistry(
+    (
+        PolicyBinding(
+            CALIBRATION_RULE,
+            "calibration_backtest_end",
+            "lte",
+            "demand_issued_at",
+            None,
+            "datetime",
+            "reject_snapshot",
+            "Calibration evidence postdates forecast issue.",
+        ),
+        PolicyBinding(
+            ISSUE_RULE,
+            "demand_issued_at",
+            "lte",
+            "snapshot_created_at",
+            None,
+            "datetime",
+            "reject_snapshot",
+            "Demand was issued after snapshot creation.",
+        ),
+        PolicyBinding(
+            HORIZON_RULE,
+            "safety_lookahead_end",
+            "lte",
+            "demand_valid_through",
+            None,
+            "datetime",
+            "input_untrusted",
+            "Demand does not cover the complete safety lookahead.",
+        ),
+        PolicyBinding(
+            SIENNA_COMMAND_RULE,
+            "mutation_path",
+            "equal",
+            None,
+            "game_session_execute",
+            "string",
+            "reject_unauthorized_mutation",
+            "Authoritative campaign mutation bypasses GameSession.Execute.",
+        ),
+        PolicyBinding(
+            SIENNA_REPLAY_RULE,
+            "actual_replay_digest",
+            "equal",
+            "expected_replay_digest",
+            None,
+            "string",
+            "nondeterministic_replay",
+            "Identical campaign inputs produced a different replay digest.",
+        ),
+    )
+)
 
 
 class PolicyRequest(BaseModel):
@@ -47,9 +140,14 @@ class PolicyResult(BaseModel):
 class PolicyService:
     """Pure policy evaluation over an immutable compiled model."""
 
-    def __init__(self, project: ProjectModel) -> None:
+    def __init__(
+        self,
+        project: ProjectModel,
+        registry: PolicyRegistry = DEFAULT_POLICY_REGISTRY,
+    ) -> None:
         self.project = project
         self._query = QueryService(project)
+        self._registry = registry
 
     def check(
         self,
@@ -80,7 +178,7 @@ class PolicyService:
                 result_state="complete",
             )
         rules = {rule.id: rule for rule in self.project.model.rules}
-        findings = _findings(request.facts, rules)
+        findings = _findings(request.facts, rules, self._registry)
         applicable = [finding for finding in findings if finding is not None]
         if not applicable:
             decision: PolicyDecision = "not_applicable"
@@ -127,76 +225,74 @@ def policy_check(
 
 
 def _findings(
-    facts: dict[str, str], rules: dict[str, Any]
+    facts: dict[str, str],
+    rules: dict[str, Any],
+    registry: PolicyRegistry = DEFAULT_POLICY_REGISTRY,
 ) -> list[Finding | None]:
     return [
-        _compare(
-            facts,
-            rules,
-            CALIBRATION_RULE,
-            "calibration_backtest_end",
-            "demand_issued_at",
-            "reject_snapshot",
-            "Calibration evidence postdates forecast issue.",
-        ),
-        _compare(
-            facts,
-            rules,
-            ISSUE_RULE,
-            "demand_issued_at",
-            "snapshot_created_at",
-            "reject_snapshot",
-            "Demand was issued after snapshot creation.",
-        ),
-        _compare(
-            facts,
-            rules,
-            HORIZON_RULE,
-            "safety_lookahead_end",
-            "demand_valid_through",
-            "input_untrusted",
-            "Demand does not cover the complete safety lookahead.",
-        ),
+        _evaluate_binding(facts, rules, binding)
+        for binding in registry.bindings
     ]
 
 
-def _compare(
+def _evaluate_binding(
     facts: dict[str, str],
     rules: dict[str, Any],
-    rule_id: str,
-    left_name: str,
-    right_name: str,
-    outcome: str,
-    failure_message: str,
+    binding: PolicyBinding,
 ) -> Finding | None:
-    if left_name not in facts or right_name not in facts:
+    if binding.left_fact not in facts:
         return None
-    rule = rules.get(rule_id)
+    right_name = binding.right_fact
+    if right_name is not None and right_name not in facts:
+        return None
+    rule = rules.get(binding.rule_id)
     sources = [] if rule is None else list(rule.source_refs)
     if rule is None:
         return Finding(
-            rule_id=rule_id,
+            rule_id=binding.rule_id,
             decision="indeterminate",
             outcome="missing_rule",
             message="Required rule is missing from the model.",
             source_refs=sources,
         )
-    try:
-        left = datetime.fromisoformat(facts[left_name].replace("Z", "+00:00"))
-        right = datetime.fromisoformat(facts[right_name].replace("Z", "+00:00"))
-    except ValueError:
-        return Finding(
-            rule_id=rule_id,
-            decision="indeterminate",
-            outcome="invalid_fact",
-            message="Policy timestamps must be ISO 8601 values.",
-            source_refs=sources,
+    right_value = (
+        facts[right_name]
+        if right_name is not None
+        else binding.right_literal
+    )
+    assert right_value is not None
+    left_value = facts[binding.left_fact]
+    if binding.value_type == "datetime":
+        try:
+            left_time = datetime.fromisoformat(
+                left_value.replace("Z", "+00:00")
+            )
+            right_time = datetime.fromisoformat(
+                right_value.replace("Z", "+00:00")
+            )
+        except ValueError:
+            return Finding(
+                rule_id=binding.rule_id,
+                decision="indeterminate",
+                outcome="invalid_fact",
+                message="Policy timestamps must be ISO 8601 values.",
+                source_refs=sources,
+            )
+        satisfied = (
+            left_time <= right_time
+            if binding.relation == "lte"
+            else left_time == right_time
         )
-    failed = left > right
+    else:
+        satisfied = (
+            left_value <= right_value
+            if binding.relation == "lte"
+            else left_value == right_value
+        )
     return Finding(
-        rule_id=rule_id,
-        decision="fail" if failed else "pass",
-        outcome=outcome if failed else "no_finding",
-        message=failure_message if failed else "Rule satisfied.",
+        rule_id=binding.rule_id,
+        decision="pass" if satisfied else "fail",
+        outcome="no_finding" if satisfied else binding.failure_outcome,
+        message="Rule satisfied." if satisfied else binding.failure_message,
         source_refs=sources,
     )

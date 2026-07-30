@@ -1,0 +1,76 @@
+corpus_id: sienna-campaign-authority-v1
+frozen_at: "2026-07-30"
+sienna_revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+model: examples/sienna.campaign-authority.project.yaml
+
+thresholds:
+  retrieval_success_min: 3
+  provenance_correctness_min: 3
+  policy_catch_rate_min: 2
+  policy_false_positives_max: 0
+  correction_rediscovery_min: 2
+  latency_p95_ms_max: 100
+  context_size_p95_bytes_max: 16384
+  model_lines_max: 220
+
+correction_rule_ids:
+  - lore:sienna/rule/authoritative-command-boundary
+  - lore:sienna/rule/deterministic-replay
+
+questions:
+  - id: q1
+    prompt: Where must authoritative campaign mutation be decided and committed?
+    expected_rule_ids:
+      - lore:sienna/rule/authoritative-command-boundary
+    expected_source_ids:
+      - lore:source/sienna/game-session
+      - lore:source/sienna/game-session-tests
+
+  - id: q2
+    prompt: What must match when the same campaign seed and accepted commands replay?
+    expected_rule_ids:
+      - lore:sienna/rule/deterministic-replay
+    expected_source_ids:
+      - lore:source/sienna/determinism-proof
+      - lore:source/sienna/determinism-tests
+
+  - id: q3
+    prompt: Give all deterministic campaign authority rules and their evidence.
+    expected_rule_ids:
+      - lore:sienna/rule/authoritative-command-boundary
+      - lore:sienna/rule/deterministic-replay
+    expected_source_ids:
+      - lore:source/sienna/game-session
+      - lore:source/sienna/determinism-proof
+      - lore:source/sienna/determinism-tests
+
+policy_cases:
+  - id: p1-command-boundary-violation
+    rule_id: lore:sienna/rule/authoritative-command-boundary
+    facts:
+      mutation_path: client_direct_state_write
+    expected: violation
+    expected_outcome: reject_unauthorized_mutation
+
+  - id: p2-command-boundary-compliant
+    rule_id: lore:sienna/rule/authoritative-command-boundary
+    facts:
+      mutation_path: game_session_execute
+    expected: compliant
+    expected_outcome: no_finding
+
+  - id: p3-replay-violation
+    rule_id: lore:sienna/rule/deterministic-replay
+    facts:
+      actual_replay_digest: sha256:changed
+      expected_replay_digest: sha256:accepted
+    expected: violation
+    expected_outcome: nondeterministic_replay
+
+  - id: p4-replay-compliant
+    rule_id: lore:sienna/rule/deterministic-replay
+    facts:
+      actual_replay_digest: sha256:accepted
+      expected_replay_digest: sha256:accepted
+    expected: compliant
+    expected_outcome: no_finding

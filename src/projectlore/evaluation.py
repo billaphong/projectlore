@@ -90,22 +90,55 @@ async def evaluate_once(
             }
         )
 
-    rediscovered = _measure_correction_rediscovery(model_path)
+    question_total = len(corpus["questions"])
+    violation_total = sum(
+        case["expected"] == "violation" for case in corpus["policy_cases"]
+    )
+    compliant_total = sum(
+        case["expected"] == "compliant" for case in corpus["policy_cases"]
+    )
+    correction_rule_ids = corpus.get(
+        "correction_rule_ids",
+        [rule.id for rule in service.model.rules],
+    )
+    rediscovered = _measure_correction_rediscovery(
+        model_path, correction_rule_ids
+    )
+    model_lines = len(model_path.read_text(encoding="utf-8").splitlines())
+    thresholds = _thresholds(
+        corpus,
+        question_total=question_total,
+        violation_total=violation_total,
+        compliant_total=compliant_total,
+        correction_total=len(correction_rule_ids),
+    )
     result = {
         "evaluation_id": f"{corpus['corpus_id']}-after",
         "run_at": datetime.now(UTC).isoformat(),
-        "corpus": str(corpus_path.resolve()),
-        "model": str(model_path.resolve()),
+        "corpus": corpus_path.as_posix(),
+        "model": Path(corpus["model"]).as_posix(),
         "scope_authority_ref": scope.authority_ref,
         "measurements": {
-            "retrieval_success": {"successful": retrieval_success, "total": 6},
-            "provenance_correctness": {"correct": provenance_correct, "total": 6},
-            "policy_catch_rate": {"caught": caught, "violations": 3},
+            "retrieval_success": {
+                "successful": retrieval_success,
+                "total": question_total,
+            },
+            "provenance_correctness": {
+                "correct": provenance_correct,
+                "total": question_total,
+            },
+            "policy_catch_rate": {
+                "caught": caught,
+                "violations": violation_total,
+            },
             "policy_false_positive_rate": {
                 "false_positives": false_positives,
-                "compliant_cases": 3,
+                "compliant_cases": compliant_total,
             },
-            "correction_rediscovery": {"rediscovered": rediscovered, "total": 3},
+            "correction_rediscovery": {
+                "rediscovered": rediscovered,
+                "total": len(correction_rule_ids),
+            },
             "latency_ms": {
                 "p50": statistics.median(latencies),
                 "p95": _percentile(latencies, 0.95),
@@ -114,40 +147,36 @@ async def evaluate_once(
                 "p50": statistics.median(context_sizes),
                 "p95": _percentile(context_sizes, 0.95),
             },
+            "maintenance": {"model_lines": model_lines},
         },
-        "thresholds": {
-            "retrieval_success": "6/6",
-            "provenance_correctness": "6/6",
-            "policy_catch_rate": "3/3",
-            "policy_false_positives": "0/3",
-            "correction_rediscovery": "3/3",
-            "latency_p95_ms_max": 100,
-            "context_size_p95_bytes_max": 16_384,
-        },
+        "thresholds": thresholds,
         "question_results": question_results,
         "policy_results": policy_results,
     }
-    result["passed"] = _passed(result["measurements"])
+    result["passed"] = _passed(result["measurements"], thresholds)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result
 
 
-def _measure_correction_rediscovery(model_path: Path) -> int:
+def _measure_correction_rediscovery(
+    model_path: Path, rule_ids: list[str]
+) -> int:
     rediscovered = 0
     with tempfile.TemporaryDirectory(prefix="projectlore-eval-") as directory:
-        for index in range(3):
+        for index, rule_id in enumerate(rule_ids):
             copy_path = Path(directory) / f"model-{index}.yaml"
             shutil.copyfile(model_path, copy_path)
             document = yaml.safe_load(copy_path.read_text(encoding="utf-8"))
             token = f"correction_token_{index}"
-            document["rules"][index]["rationale"] += f" {token}"
+            rule = next(item for item in document["rules"] if item["id"] == rule_id)
+            rule["rationale"] = f"{rule.get('rationale', '')} {token}".strip()
             copy_path.write_text(
                 yaml.safe_dump(document, sort_keys=False),
                 encoding="utf-8",
             )
             context = ModelService(copy_path).context_for_task(token)
-            if document["rules"][index]["id"] in {
+            if rule_id in {
                 rule["id"] for rule in context["rules"]
             }:
                 rediscovered += 1
@@ -160,13 +189,58 @@ def _percentile(values: list[float] | list[int], quantile: float) -> float:
     return float(ordered[index])
 
 
-def _passed(measurements: dict[str, Any]) -> bool:
+def _thresholds(
+    corpus: dict[str, Any],
+    *,
+    question_total: int,
+    violation_total: int,
+    compliant_total: int,
+    correction_total: int,
+) -> dict[str, int]:
+    configured = corpus.get("thresholds", {})
+    return {
+        "retrieval_success_min": configured.get(
+            "retrieval_success_min", question_total
+        ),
+        "provenance_correctness_min": configured.get(
+            "provenance_correctness_min", question_total
+        ),
+        "policy_catch_rate_min": configured.get(
+            "policy_catch_rate_min", violation_total
+        ),
+        "policy_false_positives_max": configured.get(
+            "policy_false_positives_max", 0
+        ),
+        "correction_rediscovery_min": configured.get(
+            "correction_rediscovery_min", correction_total
+        ),
+        "latency_p95_ms_max": configured.get("latency_p95_ms_max", 100),
+        "context_size_p95_bytes_max": configured.get(
+            "context_size_p95_bytes_max", 16_384
+        ),
+        "model_lines_max": configured.get("model_lines_max", 2**31 - 1),
+        "compliant_case_count": compliant_total,
+    }
+
+
+def _passed(
+    measurements: dict[str, Any], thresholds: dict[str, int]
+) -> bool:
     return bool(
-        measurements["retrieval_success"]["successful"] == 6
-        and measurements["provenance_correctness"]["correct"] == 6
-        and measurements["policy_catch_rate"]["caught"] == 3
-        and measurements["policy_false_positive_rate"]["false_positives"] == 0
-        and measurements["correction_rediscovery"]["rediscovered"] == 3
-        and measurements["latency_ms"]["p95"] <= 100
-        and measurements["context_size_bytes"]["p95"] <= 16_384
+        measurements["retrieval_success"]["successful"]
+        >= thresholds["retrieval_success_min"]
+        and measurements["provenance_correctness"]["correct"]
+        >= thresholds["provenance_correctness_min"]
+        and measurements["policy_catch_rate"]["caught"]
+        >= thresholds["policy_catch_rate_min"]
+        and measurements["policy_false_positive_rate"]["false_positives"]
+        <= thresholds["policy_false_positives_max"]
+        and measurements["correction_rediscovery"]["rediscovered"]
+        >= thresholds["correction_rediscovery_min"]
+        and measurements["latency_ms"]["p95"]
+        <= thresholds["latency_p95_ms_max"]
+        and measurements["context_size_bytes"]["p95"]
+        <= thresholds["context_size_p95_bytes_max"]
+        and measurements["maintenance"]["model_lines"]
+        <= thresholds["model_lines_max"]
     )

@@ -140,3 +140,8 @@ reported state.
 
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.
+
+The contrasting
+[Sienna campaign-authority pilot](docs/pilots/sienna-campaign-authority.md)
+reuses the same model, MCP, policy-result, and scope-receipt contracts for a
+deterministic C# simulation domain without changing the Sienna repository.

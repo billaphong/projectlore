@@ -1,0 +1,158 @@
+id: lore:sienna/campaign-authority
+name: Sienna deterministic campaign authority
+description: >
+  Contrasting pilot for Sienna's authoritative campaign command boundary and
+  deterministic replay contract.
+schema_version: 0.1.0
+model_version: 0.1.0
+
+domains:
+  - id: lore:sienna/campaign-authority
+    name: Deterministic campaign authority
+    description: >
+      Rules that keep campaign mutation inside the engine-independent
+      authoritative core and make an accepted command transcript reproducible.
+    terms:
+      - value: authoritative campaign state
+        meaning: The campaign state owned by Sienna.Core and mutated through accepted commands.
+        preferred: true
+      - value: replay digest
+        meaning: A stable digest of the final snapshot or ordered event transcript.
+        preferred: true
+      - value: command boundary
+        meaning: GameSession.Execute, where supported commands are decided and committed.
+        preferred: true
+    source_refs:
+      - lore:source/sienna/game-session
+      - lore:source/sienna/determinism-proof
+      - lore:source/sienna/determinism-tests
+
+concepts:
+  - id: lore:sienna/authoritative-campaign-state
+    name: Authoritative campaign state
+    description: >
+      Engine-independent state whose validated identities, ordering, random
+      streams, and accepted command/event sequences define campaign truth.
+    domain_ref: lore:sienna/campaign-authority
+    rule_refs:
+      - lore:sienna/rule/authoritative-command-boundary
+      - lore:sienna/rule/deterministic-replay
+    implementation_anchors:
+      - repository: sienna
+        path: src/Sienna.Core/Domain/CampaignState.cs
+        symbol: CampaignState
+        revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    source_refs:
+      - lore:source/sienna/campaign-state
+      - lore:source/sienna/game-session
+
+  - id: lore:sienna/accepted-command-transcript
+    name: Accepted command transcript
+    description: >
+      The ordered sequence of accepted commands and emitted events that can be
+      replayed from the same initial state and named random streams.
+    domain_ref: lore:sienna/campaign-authority
+    rule_refs:
+      - lore:sienna/rule/deterministic-replay
+    implementation_anchors:
+      - repository: sienna
+        path: src/Sienna.Infrastructure/Diagnostics/Cycle2DeterminismProof.cs
+        symbol: Cycle2DeterminismProof
+        revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    source_refs:
+      - lore:source/sienna/determinism-proof
+      - lore:source/sienna/determinism-tests
+
+relationships:
+  - id: lore:sienna/transcript-replays-campaign-state
+    subject_ref: lore:sienna/accepted-command-transcript
+    predicate: validates
+    object_ref: lore:sienna/authoritative-campaign-state
+    description: >
+      Exact replay of the accepted transcript validates deterministic campaign
+      evolution.
+    source_refs:
+      - lore:source/sienna/determinism-tests
+
+rules:
+  - id: lore:sienna/rule/authoritative-command-boundary
+    statement: >
+      Authoritative campaign mutation must be decided and committed through
+      GameSession.Execute.
+    kind: invariant
+    severity: blocker
+    source_refs:
+      - lore:source/sienna/game-session
+      - lore:source/sienna/game-session-tests
+    implementation_anchors:
+      - repository: sienna
+        path: src/Sienna.Core/Commands/GameSession.cs
+        symbol: GameSession.Execute
+        revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    rationale: >
+      A single explicit command boundary preserves validation, atomic rejection,
+      deterministic random state, accepted sequence ordering, and domain events.
+    remediation: >
+      Express the mutation as a supported command and execute it through
+      GameSession instead of changing CampaignState from a client or adapter.
+
+  - id: lore:sienna/rule/deterministic-replay
+    statement: >
+      The same initial state, seed, and accepted command sequence must produce
+      the same final snapshot and ordered event transcript digests.
+    kind: invariant
+    severity: blocker
+    source_refs:
+      - lore:source/sienna/determinism-proof
+      - lore:source/sienna/determinism-tests
+    implementation_anchors:
+      - repository: sienna
+        path: src/Sienna.Infrastructure/Diagnostics/Cycle2DeterminismProof.cs
+        symbol: Cycle2DeterminismProof.RunUninterrupted
+        revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+      - repository: sienna
+        path: tests/Sienna.Infrastructure.Tests/Diagnostics/Cycle2DeterminismProofTests.cs
+        symbol: RepeatedUninterruptedRunsProduceIdenticalArtifacts
+        revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    rationale: >
+      Reproducible simulation is required for saves, diagnostics, AI parity,
+      regression tests, and campaign correctness.
+    remediation: >
+      Remove ambient randomness or unstable ordering and replay through the
+      canonical command and snapshot seams until both digests match.
+
+sources:
+  - id: lore:source/sienna/campaign-state
+    kind: code
+    uri: file:../sienna/src/Sienna.Core/Domain/CampaignState.cs
+    title: Authoritative campaign state
+    revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    observed_at: "2026-07-30"
+
+  - id: lore:source/sienna/game-session
+    kind: code
+    uri: file:../sienna/src/Sienna.Core/Commands/GameSession.cs
+    title: Authoritative command decision and commit boundary
+    revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    observed_at: "2026-07-30"
+
+  - id: lore:source/sienna/game-session-tests
+    kind: code
+    uri: file:../sienna/tests/Sienna.Core.Tests/Commands/GameSessionRejectionTests.cs
+    title: Command rejection and unchanged-state tests
+    revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    observed_at: "2026-07-30"
+
+  - id: lore:source/sienna/determinism-proof
+    kind: code
+    uri: file:../sienna/src/Sienna.Infrastructure/Diagnostics/Cycle2DeterminismProof.cs
+    title: Campaign determinism proof runner
+    revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    observed_at: "2026-07-30"
+
+  - id: lore:source/sienna/determinism-tests
+    kind: code
+    uri: file:../sienna/tests/Sienna.Infrastructure.Tests/Diagnostics/Cycle2DeterminismProofTests.cs
+    title: Campaign replay and culture determinism tests
+    revision: 5722b2b22b769d237113044ef1e5c652e89ddb94
+    observed_at: "2026-07-30"
