@@ -8,6 +8,8 @@ implementation anchors that coding agents need to work consistently within a
 software project. It attaches to the development workflow through MCP, agent
 hooks, local checks, and CI without becoming a work tracker or code graph.
 
+ProjectLore is licensed under the [Apache License 2.0](LICENSE).
+
 ## Vocabulary
 
 - **Project knowledge model:** the complete model for a project.

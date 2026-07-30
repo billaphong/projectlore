@@ -8,12 +8,15 @@ version = "0.1.0a1"
 description = "Give every coding agent the same understanding of your project."
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
   { name = "ProjectLore contributors" },
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -25,6 +28,12 @@ dependencies = [
   "pydantic>=2.10,<3",
   "PyYAML>=6.0,<7",
 ]
+
+[project.urls]
+Homepage = "https://github.com/billaphong/projectlore"
+Documentation = "https://github.com/billaphong/projectlore#readme"
+Issues = "https://github.com/billaphong/projectlore/issues"
+Source = "https://github.com/billaphong/projectlore"
 
 [project.optional-dependencies]
 dev = [
@@ -46,6 +55,7 @@ packages = ["src/projectlore"]
 include = [
   "/CHANGELOG.md",
   "/CONTRIBUTING.md",
+  "/LICENSE",
   "/README.md",
   "/SECURITY.md",
   "/docs/architecture.md",

@@ -8,6 +8,7 @@ __pycache__/
 build/
 dist/
 dist-alpha/
+dist-release-*/
 *.egg-info/
 
 # Local state and generated indexes

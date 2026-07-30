@@ -34,8 +34,8 @@ promoting an alpha requires a separate explicit owner instruction after:
 4. package name and version availability are checked immediately before upload;
 5. hashes and generated schema are recorded.
 
-This repository currently has no owner-selected redistribution license. Until
-one is added, do not publish or describe the package as open source.
+The owner selected Apache-2.0 and authorized publication of `0.1.0a1` on
+2026-07-30. Later versions still require their own release authorization.
 
 ## Reproducibility
 
