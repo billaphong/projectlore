@@ -15,7 +15,13 @@
       },
       "hooks": {
         "project_file": ".claude/settings.json",
-        "events": ["PreToolUse"],
+        "events": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PreToolUse",
+          "PostToolUse",
+          "Stop"
+        ],
         "blocking": "exit 2 blocks the matched tool call",
         "requires_trust": true,
         "subagents": "PreToolUse applies to matching subagent tool calls"
@@ -35,7 +41,13 @@
       },
       "hooks": {
         "project_file": ".codex/hooks.json",
-        "events": ["PreToolUse"],
+        "events": [
+          "SessionStart",
+          "UserPromptSubmit",
+          "PreToolUse",
+          "PostToolUse",
+          "Stop"
+        ],
         "blocking": "a blocking PreToolUse decision prevents the matched tool call",
         "requires_trust": true,
         "subagents": "matching hooks run in agent and subagent lifecycle contexts"
@@ -44,8 +56,14 @@
     }
   },
   "equivalence": {
-    "shared_events": ["PreToolUse"],
-    "normalized_event_contract": "projectlore-hook-event/0.1.0",
+    "shared_events": [
+      "SessionStart",
+      "UserPromptSubmit",
+      "PreToolUse",
+      "PostToolUse",
+      "Stop"
+    ],
+    "normalized_event_contract": "projectlore-agent-event/0.1.0",
     "comparison": "model_digest and contract_version must match across processes",
     "degradation": "unsupported events are reported as unavailable, never simulated or described as enforced"
   }

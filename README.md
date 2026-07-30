@@ -88,5 +88,12 @@ Git-ignored receipt under `.projectlore/trust/`, bound to the exact client
 version and configuration digests. Any configuration or version drift
 invalidates that receipt.
 
+Interactive lifecycle adapters normalize supported `SessionStart`,
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and `Stop` inputs into the
+bounded `projectlore-agent-event/0.1.0` contract. Only a deterministic,
+applicable pre-action violation blocks. Post-action findings are advisory and
+never claim to reverse completed side effects. Session receipts attest only
+that context was requested and resolved—not that an agent understood it.
+
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.

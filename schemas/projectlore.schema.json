@@ -738,6 +738,30 @@
           "title": "Claim",
           "type": "string"
         },
+        "closure_generation": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Closure Generation"
+        },
+        "confirmed_scope_version": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmed Scope Version"
+        },
         "evaluated_at": {
           "format": "date-time",
           "title": "Evaluated At",
@@ -750,6 +774,11 @@
         "fresh": {
           "title": "Fresh",
           "type": "boolean"
+        },
+        "maximum_age_seconds": {
+          "minimum": 1,
+          "title": "Maximum Age Seconds",
+          "type": "integer"
         },
         "observed_at": {
           "format": "date-time",
@@ -786,7 +815,8 @@
         "scope_digest",
         "fresh",
         "claim",
-        "obtained_via"
+        "obtained_via",
+        "maximum_age_seconds"
       ],
       "title": "ScopeReceipt",
       "type": "object"

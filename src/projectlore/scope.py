@@ -20,6 +20,8 @@ class ScopeSnapshot(StrictModel):
     validation_open: int = Field(ge=0)
     observed_at: datetime = Field(strict=False)
     authority_ref: str = Field(pattern=r"^fraimed://frame/")
+    confirmed_scope_version: int | None = Field(default=None, ge=1)
+    closure_generation: int | None = Field(default=None, ge=0)
 
 
 class ScopeReceipt(StrictModel):
@@ -34,6 +36,9 @@ class ScopeReceipt(StrictModel):
     fresh: bool
     claim: Literal["scope_observed"]
     obtained_via: Literal["fraimed_mcp", "provided_snapshot"]
+    confirmed_scope_version: int | None = None
+    closure_generation: int | None = None
+    maximum_age_seconds: int = Field(ge=1)
 
 def issue_scope_receipt(
     snapshot: ScopeSnapshot,
@@ -62,4 +67,7 @@ def issue_scope_receipt(
         fresh=fresh,
         claim="scope_observed",
         obtained_via=obtained_via,
+        confirmed_scope_version=snapshot.confirmed_scope_version,
+        closure_generation=snapshot.closure_generation,
+        maximum_age_seconds=maximum_age_seconds,
     )
