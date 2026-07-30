@@ -17,8 +17,8 @@ jobs:
         python: ["3.11", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -42,7 +42,7 @@ jobs:
           schemas/projectlore.schema.json
       - name: Retain one alpha artifact
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: projectlore-0.1.0a1
           path: dist/*
