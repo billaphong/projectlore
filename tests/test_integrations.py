@@ -49,7 +49,18 @@ def test_managed_instruction_apply_rejects_intervening_drift(
         apply_instruction_previews(previews)
 
 
-def test_doctor_proves_versions_mcp_identity_and_blocking_hook() -> None:
+def test_doctor_proves_versions_mcp_identity_and_blocking_hook(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    versions = {"claude": "2.1.220", "codex": "0.146.0"}
+    monkeypatch.setattr(
+        "projectlore.doctor._version",
+        lambda command, argument: versions[command],
+    )
+    monkeypatch.setattr(
+        "projectlore.doctor._contains",
+        lambda path, value: True,
+    )
     result = run_doctor(ROOT, MODEL)
 
     assert result["healthy"] is True
