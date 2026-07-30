@@ -64,6 +64,21 @@ Integrations join these systems through stable references. They must not copy
 another system's entire state into the canonical model. These ownership
 boundaries cannot be demoted by project configuration.
 
+### CodeGraph composition
+
+The optional CodeGraph adapter sits behind `AdapterRegistry` and accepts only a
+bounded, lookup-only client contract. It resolves Concept and Rule
+implementation anchors into disposable observations carrying repository,
+requested revision, observed revision, path, and symbol identity. The
+observation digest is stable; its timestamp describes the lookup, not canonical
+project meaning.
+
+Dependency states are explicit: present, absent, stale, or rebuilding. A
+required lookup that cannot run is indeterminate, never successful. Broken,
+missing, stale, and ambiguous anchors are localized to their owners so unrelated
+knowledge remains usable. ProjectLore stores no CodeGraph nodes, edges, or
+topology; CodeGraph remains authoritative for its rebuildable code index.
+
 ## MCP and CLI behavior
 
 The MCP server exposes read-only status, discovery, lookup, traversal, term

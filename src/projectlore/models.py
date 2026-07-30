@@ -124,6 +124,7 @@ class Rule(StrictModel):
     kind: RuleKind = Field(strict=False)
     severity: RuleSeverity = Field(strict=False)
     source_refs: list[str] = Field(default_factory=list)
+    implementation_anchors: list[ImplementationAnchor] = Field(default_factory=list)
     rationale: str | None = Field(default=None, max_length=16_384)
     remediation: str | None = Field(default=None, max_length=16_384)
     status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)

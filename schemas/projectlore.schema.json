@@ -616,6 +616,13 @@
           "title": "Id",
           "type": "string"
         },
+        "implementation_anchors": {
+          "items": {
+            "$ref": "#/$defs/ImplementationAnchor"
+          },
+          "title": "Implementation Anchors",
+          "type": "array"
+        },
         "kind": {
           "$ref": "#/$defs/RuleKind"
         },

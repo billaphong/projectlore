@@ -118,6 +118,13 @@ reimplementing their semantics. Local and pre-commit results are explicitly
 protected branch. Hosted CI configuration is not generated or modified without
 repository-specific authorization.
 
+CodeGraph integration is optional and read-only. `AdapterRegistry` accepts a
+bounded lookup client, and `CodeGraphAdapter` resolves Concept and Rule
+implementation anchors into provenance-bearing observations. Absent, stale,
+rebuilding, ambiguous, and broken results remain explicit and localized; a
+required unavailable lookup is indeterminate. The adapter retains stable
+references and observation digests, never a mirrored code graph.
+
 `lore integration check MODEL [--evidence EVIDENCE.json]` reports the highest
 contiguously proven assurance state and every missing requirement. The only
 states are `available`, `hook_active`, `local_gate_passed`, `ci_gate_passed`,
