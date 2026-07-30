@@ -5,6 +5,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+build/
+dist/
+dist-alpha/
+*.egg-info/
 
 # Local state and generated indexes
 .projectlore/

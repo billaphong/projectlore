@@ -1,6 +1,6 @@
 {
   "matrix_version": "projectlore-client-capabilities/0.1.0",
-  "verified_at": "2026-07-29",
+  "verified_at": "2026-07-30",
   "clients": {
     "claude_code": {
       "minimum_version": "2.1.220",
