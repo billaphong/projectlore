@@ -1,0 +1,18 @@
+schema_version: 0.2.0
+model_version: 1.0.0
+id: lore:portable-invalid
+name: Invalid portable contract example
+domains:
+  - id: lore:portable/domain
+    name: Portable domain
+    source_refs: [lore:portable/missing-source]
+concepts: []
+relationships: []
+rules:
+  - id: lore:portable/old-rule
+    statement: Superseded rules identify their replacement.
+    kind: invariant
+    severity: error
+    lifecycle: superseded
+    source_refs: [lore:portable/missing-source]
+sources: []

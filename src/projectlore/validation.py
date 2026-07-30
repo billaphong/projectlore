@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from projectlore.models import ProjectKnowledgeModel
+from projectlore.models import LifecycleStatus, ProjectKnowledgeModel
 
 
 @dataclass(frozen=True)
@@ -79,13 +79,26 @@ def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
     entity_ids: dict[str, str] = {}
 
-    groups = (
+    groups: list[tuple[str, list[str]]] = [
         ("domains", [entity.id for entity in model.domains]),
         ("concepts", [entity.id for entity in model.concepts]),
         ("relationships", [entity.id for entity in model.relationships]),
         ("rules", [entity.id for entity in model.rules]),
         ("sources", [entity.id for entity in model.sources]),
-    )
+    ]
+    if model.integration_manifest is not None:
+        groups.extend(
+            [
+                (
+                    "integration_manifest.checker_bindings",
+                    [item.id for item in model.integration_manifest.checker_bindings],
+                ),
+                (
+                    "integration_manifest.context_profiles",
+                    [item.id for item in model.integration_manifest.context_profiles],
+                ),
+            ]
+        )
     for group_name, identifiers in groups:
         for index, identifier in enumerate(identifiers):
             prior = entity_ids.get(identifier)
@@ -108,6 +121,14 @@ def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
     rule_ids = {item.id for item in model.rules}
     source_ids = {item.id for item in model.sources}
 
+    for index, domain in enumerate(model.domains):
+        _require_sources(
+            diagnostics,
+            domain.source_refs,
+            source_ids,
+            f"domains.{index}",
+        )
+
     for index, concept in enumerate(model.concepts):
         _require_ref(
             diagnostics,
@@ -126,6 +147,13 @@ def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
             diagnostics,
             concept.source_refs,
             source_ids,
+            f"concepts.{index}",
+        )
+        _require_supersession(
+            diagnostics,
+            concept.lifecycle,
+            concept.superseded_by,
+            concept_ids,
             f"concepts.{index}",
         )
 
@@ -148,9 +176,23 @@ def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
             source_ids,
             f"relationships.{index}",
         )
+        _require_supersession(
+            diagnostics,
+            relationship.lifecycle,
+            relationship.superseded_by,
+            {item.id for item in model.relationships},
+            f"relationships.{index}",
+        )
 
     for index, rule in enumerate(model.rules):
         _require_sources(diagnostics, rule.source_refs, source_ids, f"rules.{index}")
+        _require_supersession(
+            diagnostics,
+            rule.lifecycle,
+            rule.superseded_by,
+            rule_ids,
+            f"rules.{index}",
+        )
 
     for index, source in enumerate(model.sources):
         if source.supersedes is not None:
@@ -160,6 +202,29 @@ def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
                 source_ids,
                 f"sources.{index}.supersedes",
             )
+
+    manifest = model.integration_manifest
+    if manifest is not None:
+        for index, binding in enumerate(manifest.checker_bindings):
+            path = f"integration_manifest.checker_bindings.{index}"
+            for ref_index, reference in enumerate(binding.rule_refs):
+                _require_ref(
+                    diagnostics,
+                    reference,
+                    rule_ids,
+                    f"{path}.rule_refs.{ref_index}",
+                )
+            _require_sources(diagnostics, binding.source_refs, source_ids, path)
+        for index, profile in enumerate(manifest.context_profiles):
+            path = f"integration_manifest.context_profiles.{index}"
+            _require_refs(
+                diagnostics, profile.domain_refs, domain_ids, f"{path}.domain_refs"
+            )
+            _require_refs(
+                diagnostics, profile.concept_refs, concept_ids, f"{path}.concept_refs"
+            )
+            _require_refs(diagnostics, profile.rule_refs, rule_ids, f"{path}.rule_refs")
+            _require_sources(diagnostics, profile.source_refs, source_ids, path)
 
     return diagnostics
 
@@ -188,3 +253,32 @@ def _require_sources(
         )
     for index, reference in enumerate(references):
         _require_ref(diagnostics, reference, source_ids, f"{path}.source_refs.{index}")
+
+
+def _require_refs(
+    diagnostics: list[Diagnostic],
+    references: list[str],
+    valid_ids: set[str],
+    path: str,
+) -> None:
+    for index, reference in enumerate(references):
+        _require_ref(diagnostics, reference, valid_ids, f"{path}.{index}")
+
+
+def _require_supersession(
+    diagnostics: list[Diagnostic],
+    lifecycle: LifecycleStatus,
+    superseded_by: str | None,
+    valid_ids: set[str],
+    path: str,
+) -> None:
+    if lifecycle is LifecycleStatus.SUPERSEDED and superseded_by is None:
+        diagnostics.append(
+            Diagnostic(
+                "PL2201",
+                "Superseded knowledge must identify its replacement.",
+                f"{path}.superseded_by",
+            )
+        )
+    if superseded_by is not None:
+        _require_ref(diagnostics, superseded_by, valid_ids, f"{path}.superseded_by")

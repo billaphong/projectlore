@@ -1,8 +1,108 @@
 {
   "$defs": {
+    "Authority": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "kind": {
+          "$ref": "#/$defs/AuthorityKind"
+        },
+        "reference": {
+          "minLength": 1,
+          "title": "Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "reference"
+      ],
+      "title": "Authority",
+      "type": "object"
+    },
+    "AuthorityKind": {
+      "enum": [
+        "project",
+        "domain",
+        "external",
+        "workflow"
+      ],
+      "title": "AuthorityKind",
+      "type": "string"
+    },
+    "CheckerBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "checker": {
+          "minLength": 1,
+          "title": "Checker",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "rule_refs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Rule Refs",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "timeout_seconds": {
+          "default": 3,
+          "maximum": 60,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
+        }
+      },
+      "required": [
+        "id",
+        "rule_refs",
+        "checker"
+      ],
+      "title": "CheckerBinding",
+      "type": "object"
+    },
     "Concept": {
       "additionalProperties": false,
       "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Authority"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "description": {
           "minLength": 1,
           "title": "Description",
@@ -11,6 +111,18 @@
         "domain_ref": {
           "title": "Domain Ref",
           "type": "string"
+        },
+        "effective_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective From"
         },
         "id": {
           "minLength": 1,
@@ -23,6 +135,10 @@
           },
           "title": "Implementation Anchors",
           "type": "array"
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/LifecycleStatus",
+          "default": "active"
         },
         "name": {
           "minLength": 1,
@@ -47,12 +163,28 @@
           "$ref": "#/$defs/KnowledgeStatus",
           "default": "asserted"
         },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Superseded By"
+        },
         "terms": {
           "items": {
             "$ref": "#/$defs/Term"
           },
           "title": "Terms",
           "type": "array"
+        },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
         }
       },
       "required": [
@@ -64,9 +196,94 @@
       "title": "Concept",
       "type": "object"
     },
+    "ContextProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "concept_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Concept Refs",
+          "type": "array"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "domain_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domain Refs",
+          "type": "array"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "rule_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rule Refs",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "token_budget": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Token Budget"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "ContextProfile",
+      "type": "object"
+    },
     "Domain": {
       "additionalProperties": false,
       "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Authority"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "description": {
           "anyOf": [
             {
@@ -84,6 +301,10 @@
           "title": "Id",
           "type": "string"
         },
+        "lifecycle": {
+          "$ref": "#/$defs/LifecycleStatus",
+          "default": "active"
+        },
         "name": {
           "minLength": 1,
           "title": "Name",
@@ -96,12 +317,20 @@
           "title": "Source Refs",
           "type": "array"
         },
+        "status": {
+          "$ref": "#/$defs/KnowledgeStatus",
+          "default": "asserted"
+        },
         "terms": {
           "items": {
             "$ref": "#/$defs/Term"
           },
           "title": "Terms",
           "type": "array"
+        },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
         }
       },
       "required": [
@@ -114,6 +343,19 @@
     "ImplementationAnchor": {
       "additionalProperties": false,
       "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
         "path": {
           "minLength": 1,
           "title": "Path",
@@ -143,6 +385,13 @@
           "default": null,
           "title": "Revision"
         },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
         "symbol": {
           "anyOf": [
             {
@@ -154,12 +403,45 @@
           ],
           "default": null,
           "title": "Symbol"
+        },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
         }
       },
       "required": [
         "path"
       ],
       "title": "ImplementationAnchor",
+      "type": "object"
+    },
+    "IntegrationManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "checker_bindings": {
+          "items": {
+            "$ref": "#/$defs/CheckerBinding"
+          },
+          "title": "Checker Bindings",
+          "type": "array"
+        },
+        "context_profiles": {
+          "items": {
+            "$ref": "#/$defs/ContextProfile"
+          },
+          "title": "Context Profiles",
+          "type": "array"
+        },
+        "manifest_version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Manifest Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "manifest_version"
+      ],
+      "title": "IntegrationManifest",
       "type": "object"
     },
     "KnowledgeStatus": {
@@ -172,9 +454,30 @@
       "title": "KnowledgeStatus",
       "type": "string"
     },
+    "LifecycleStatus": {
+      "enum": [
+        "active",
+        "deprecated",
+        "draft",
+        "superseded"
+      ],
+      "title": "LifecycleStatus",
+      "type": "string"
+    },
     "Relationship": {
       "additionalProperties": false,
       "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Authority"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "description": {
           "anyOf": [
             {
@@ -187,10 +490,26 @@
           "default": null,
           "title": "Description"
         },
+        "effective_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective From"
+        },
         "id": {
           "minLength": 1,
           "title": "Id",
           "type": "string"
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/LifecycleStatus",
+          "default": "active"
         },
         "object_ref": {
           "title": "Object Ref",
@@ -213,6 +532,22 @@
         "subject_ref": {
           "title": "Subject Ref",
           "type": "string"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Superseded By"
+        },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
         }
       },
       "required": [
@@ -241,6 +576,29 @@
     "Rule": {
       "additionalProperties": false,
       "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Authority"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "effective_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective From"
+        },
         "id": {
           "minLength": 1,
           "title": "Id",
@@ -248,6 +606,10 @@
         },
         "kind": {
           "$ref": "#/$defs/RuleKind"
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/LifecycleStatus",
+          "default": "active"
         },
         "rationale": {
           "anyOf": [
@@ -291,6 +653,22 @@
         "status": {
           "$ref": "#/$defs/KnowledgeStatus",
           "default": "asserted"
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Superseded By"
+        },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
         }
       },
       "required": [
@@ -323,9 +701,107 @@
       "title": "RuleSeverity",
       "type": "string"
     },
+    "ScopeReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "age_seconds": {
+          "minimum": 0,
+          "title": "Age Seconds",
+          "type": "number"
+        },
+        "authority": {
+          "const": "fraimed",
+          "title": "Authority",
+          "type": "string"
+        },
+        "authority_ref": {
+          "title": "Authority Ref",
+          "type": "string"
+        },
+        "claim": {
+          "const": "scope_observed",
+          "title": "Claim",
+          "type": "string"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "title": "Evaluated At",
+          "type": "string"
+        },
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "fresh": {
+          "title": "Fresh",
+          "type": "boolean"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "obtained_via": {
+          "enum": [
+            "fraimed_mcp",
+            "provided_snapshot"
+          ],
+          "title": "Obtained Via",
+          "type": "string"
+        },
+        "receipt_version": {
+          "const": "scope-receipt/0.1.0",
+          "title": "Receipt Version",
+          "type": "string"
+        },
+        "scope_digest": {
+          "pattern": "^sha256:",
+          "title": "Scope Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_version",
+        "authority",
+        "frame_id",
+        "authority_ref",
+        "observed_at",
+        "evaluated_at",
+        "age_seconds",
+        "scope_digest",
+        "fresh",
+        "claim",
+        "obtained_via"
+      ],
+      "title": "ScopeReceipt",
+      "type": "object"
+    },
     "Source": {
       "additionalProperties": false,
       "properties": {
+        "authority": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Authority"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "effective_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effective From"
+        },
         "id": {
           "minLength": 1,
           "title": "Id",
@@ -333,6 +809,10 @@
         },
         "kind": {
           "$ref": "#/$defs/SourceKind"
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/LifecycleStatus",
+          "default": "active"
         },
         "observed_at": {
           "anyOf": [
@@ -386,6 +866,10 @@
           "default": null,
           "title": "Title"
         },
+        "trust": {
+          "$ref": "#/$defs/TrustLabel",
+          "default": "unverified"
+        },
         "uri": {
           "anyOf": [
             {
@@ -423,6 +907,23 @@
     "Term": {
       "additionalProperties": false,
       "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "lifecycle": {
+          "$ref": "#/$defs/LifecycleStatus",
+          "default": "active"
+        },
         "meaning": {
           "anyOf": [
             {
@@ -440,6 +941,13 @@
           "title": "Preferred",
           "type": "boolean"
         },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
         "status": {
           "$ref": "#/$defs/KnowledgeStatus",
           "default": "asserted"
@@ -455,6 +963,15 @@
       ],
       "title": "Term",
       "type": "object"
+    },
+    "TrustLabel": {
+      "enum": [
+        "authoritative",
+        "corroborated",
+        "unverified"
+      ],
+      "title": "TrustLabel",
+      "type": "string"
     }
   },
   "$id": "https://projectlore.ai/schema/projectlore.schema.json",
@@ -490,6 +1007,17 @@
       "minLength": 1,
       "title": "Id",
       "type": "string"
+    },
+    "integration_manifest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IntegrationManifest"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "model_version": {
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
@@ -535,5 +1063,19 @@
     "name"
   ],
   "title": "ProjectLore Project Knowledge Model",
-  "type": "object"
+  "type": "object",
+  "x-projectlore-public-contracts": [
+    "ProjectKnowledgeModel",
+    "Domain",
+    "Concept",
+    "Term",
+    "Relationship",
+    "Rule",
+    "Source",
+    "ImplementationAnchor",
+    "CheckerBinding",
+    "ContextProfile",
+    "IntegrationManifest",
+    "ScopeReceipt"
+  ]
 }

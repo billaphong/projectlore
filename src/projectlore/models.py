@@ -20,6 +20,26 @@ class KnowledgeStatus(StrEnum):
     SUGGESTED = "suggested"
 
 
+class LifecycleStatus(StrEnum):
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+    DRAFT = "draft"
+    SUPERSEDED = "superseded"
+
+
+class AuthorityKind(StrEnum):
+    PROJECT = "project"
+    DOMAIN = "domain"
+    EXTERNAL = "external"
+    WORKFLOW = "workflow"
+
+
+class TrustLabel(StrEnum):
+    AUTHORITATIVE = "authoritative"
+    CORROBORATED = "corroborated"
+    UNVERIFIED = "unverified"
+
+
 class SourceKind(StrEnum):
     ASSERTION = "assertion"
     CODE = "code"
@@ -57,11 +77,20 @@ class RelationshipKind(StrEnum):
     VALIDATES = "validates"
 
 
+class Authority(StrictModel):
+    kind: AuthorityKind = Field(strict=False)
+    reference: str = Field(min_length=1)
+    description: str | None = None
+
+
 class Term(StrictModel):
+    id: str | None = Field(default=None, min_length=1)
     value: str = Field(min_length=1)
     meaning: str | None = None
     preferred: bool = False
-    status: KnowledgeStatus = KnowledgeStatus.ASSERTED
+    status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)
+    lifecycle: LifecycleStatus = Field(default=LifecycleStatus.ACTIVE, strict=False)
+    source_refs: list[str] = Field(default_factory=list)
 
 
 class Source(StrictModel):
@@ -71,15 +100,22 @@ class Source(StrictModel):
     title: str | None = None
     revision: str | None = None
     observed_at: str | None = None
-    status: KnowledgeStatus = KnowledgeStatus.ASSERTED
+    status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)
+    lifecycle: LifecycleStatus = Field(default=LifecycleStatus.ACTIVE, strict=False)
+    authority: Authority | None = None
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
+    effective_from: str | None = None
     supersedes: str | None = None
 
 
 class ImplementationAnchor(StrictModel):
+    id: str | None = Field(default=None, min_length=1)
     repository: str | None = None
     path: str = Field(min_length=1)
     symbol: str | None = None
     revision: str | None = None
+    source_refs: list[str] = Field(default_factory=list)
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
 
 
 class Rule(StrictModel):
@@ -90,7 +126,12 @@ class Rule(StrictModel):
     source_refs: list[str] = Field(default_factory=list)
     rationale: str | None = None
     remediation: str | None = None
-    status: KnowledgeStatus = KnowledgeStatus.ASSERTED
+    status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)
+    lifecycle: LifecycleStatus = Field(default=LifecycleStatus.ACTIVE, strict=False)
+    authority: Authority | None = None
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
+    effective_from: str | None = None
+    superseded_by: str | None = None
 
 
 class Domain(StrictModel):
@@ -99,6 +140,10 @@ class Domain(StrictModel):
     description: str | None = None
     terms: list[Term] = Field(default_factory=list)
     source_refs: list[str] = Field(default_factory=list)
+    status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)
+    lifecycle: LifecycleStatus = Field(default=LifecycleStatus.ACTIVE, strict=False)
+    authority: Authority | None = None
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
 
 
 class Concept(StrictModel):
@@ -110,7 +155,12 @@ class Concept(StrictModel):
     rule_refs: list[str] = Field(default_factory=list)
     implementation_anchors: list[ImplementationAnchor] = Field(default_factory=list)
     source_refs: list[str] = Field(default_factory=list)
-    status: KnowledgeStatus = KnowledgeStatus.ASSERTED
+    status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)
+    lifecycle: LifecycleStatus = Field(default=LifecycleStatus.ACTIVE, strict=False)
+    authority: Authority | None = None
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
+    effective_from: str | None = None
+    superseded_by: str | None = None
 
 
 class Relationship(StrictModel):
@@ -120,7 +170,38 @@ class Relationship(StrictModel):
     object_ref: str
     description: str | None = None
     source_refs: list[str] = Field(default_factory=list)
-    status: KnowledgeStatus = KnowledgeStatus.ASSERTED
+    status: KnowledgeStatus = Field(default=KnowledgeStatus.ASSERTED, strict=False)
+    lifecycle: LifecycleStatus = Field(default=LifecycleStatus.ACTIVE, strict=False)
+    authority: Authority | None = None
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
+    effective_from: str | None = None
+    superseded_by: str | None = None
+
+
+class CheckerBinding(StrictModel):
+    id: str = Field(min_length=1)
+    rule_refs: list[str] = Field(min_length=1)
+    checker: str = Field(min_length=1)
+    timeout_seconds: int = Field(default=3, ge=1, le=60)
+    source_refs: list[str] = Field(default_factory=list)
+    trust: TrustLabel = Field(default=TrustLabel.UNVERIFIED, strict=False)
+
+
+class ContextProfile(StrictModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    description: str | None = None
+    domain_refs: list[str] = Field(default_factory=list)
+    concept_refs: list[str] = Field(default_factory=list)
+    rule_refs: list[str] = Field(default_factory=list)
+    source_refs: list[str] = Field(default_factory=list)
+    token_budget: int | None = Field(default=None, ge=1)
+
+
+class IntegrationManifest(StrictModel):
+    manifest_version: str = Field(pattern=r"^\d+\.\d+\.\d+$")
+    checker_bindings: list[CheckerBinding] = Field(default_factory=list)
+    context_profiles: list[ContextProfile] = Field(default_factory=list)
 
 
 class ProjectKnowledgeModel(StrictModel):
@@ -134,3 +215,4 @@ class ProjectKnowledgeModel(StrictModel):
     relationships: list[Relationship] = Field(default_factory=list)
     rules: list[Rule] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
+    integration_manifest: IntegrationManifest | None = None

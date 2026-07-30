@@ -7,12 +7,12 @@ import json
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import Field, model_validator
+
+from projectlore.models import StrictModel
 
 
-class ScopeSnapshot(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-
+class ScopeSnapshot(StrictModel):
     authority: Literal["fraimed"]
     frame_id: str = Field(min_length=1)
     frame_title: str = Field(min_length=1)
@@ -22,9 +22,7 @@ class ScopeSnapshot(BaseModel):
     authority_ref: str = Field(pattern=r"^fraimed://frame/")
 
 
-class ScopeReceipt(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-
+class ScopeReceipt(StrictModel):
     receipt_version: Literal["scope-receipt/0.1.0"]
     authority: Literal["fraimed"]
     frame_id: str

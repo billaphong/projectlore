@@ -12,6 +12,8 @@ domains:
       - value: organization
         meaning: The authenticated ownership boundary for tenant data.
         preferred: true
+    source_refs:
+      - lore:source/homebrew-agents
 
 concepts:
   - id: lore:homebrew/organization

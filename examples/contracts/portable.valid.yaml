@@ -1,0 +1,52 @@
+schema_version: 0.2.0
+model_version: 1.0.0
+id: lore:portable-example
+name: Portable contract example
+domains:
+  - id: lore:portable/domain
+    name: Portable domain
+    source_refs: [lore:portable/source]
+    authority:
+      kind: domain
+      reference: file:examples/contracts/portable.valid.yaml
+    trust: authoritative
+concepts:
+  - id: lore:portable/concept
+    name: Portable concept
+    description: A concept demonstrating the public instance contract.
+    domain_ref: lore:portable/domain
+    rule_refs: [lore:portable/rule]
+    source_refs: [lore:portable/source]
+    trust: corroborated
+relationships: []
+rules:
+  - id: lore:portable/rule
+    statement: Portable examples must remain valid independently of Python APIs.
+    kind: invariant
+    severity: error
+    source_refs: [lore:portable/source]
+    authority:
+      kind: project
+      reference: file:AGENTS.md
+    trust: authoritative
+sources:
+  - id: lore:portable/source
+    kind: specification
+    uri: file:AGENTS.md
+    trust: authoritative
+integration_manifest:
+  manifest_version: 0.1.0
+  checker_bindings:
+    - id: lore:portable/checker
+      rule_refs: [lore:portable/rule]
+      checker: projectlore.policy:check
+      source_refs: [lore:portable/source]
+      trust: authoritative
+  context_profiles:
+    - id: lore:portable/profile
+      name: Portable profile
+      domain_refs: [lore:portable/domain]
+      concept_refs: [lore:portable/concept]
+      rule_refs: [lore:portable/rule]
+      source_refs: [lore:portable/source]
+      token_budget: 4096
