@@ -42,8 +42,18 @@ class PolicyResult(BaseModel):
     scope_receipt: ScopeReceipt
 
 
-def policy_check(service: ModelService, request: PolicyRequest) -> dict[str, Any]:
-    receipt = issue_scope_receipt(request.scope)
+def policy_check(
+    service: ModelService,
+    request: PolicyRequest,
+    *,
+    scope_obtained_via: Literal[
+        "fraimed_mcp", "provided_snapshot"
+    ] = "provided_snapshot",
+) -> dict[str, Any]:
+    receipt = issue_scope_receipt(
+        request.scope,
+        obtained_via=scope_obtained_via,
+    )
     rules = {rule.id: rule for rule in service.model.rules}
     findings = [
         _compare(

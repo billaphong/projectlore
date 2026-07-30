@@ -8,14 +8,27 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
 from projectlore.policy import PolicyRequest
 from projectlore.policy import policy_check as evaluate_policy
 from projectlore.service import ModelService
 
 MODEL_ENV = "PROJECTLORE_MODEL"
+FRAIMED_URL_ENV = "PROJECTLORE_FRAIMED_MCP_URL"
+FRAIMED_TOKEN_ENV = "FRAIMED_API_TOKEN"
 
 
-def create_server(model_path: Path) -> FastMCP:
+def create_server(
+    model_path: Path,
+    scope_authority: ScopeAuthority | None = None,
+) -> FastMCP:
+    authority = scope_authority or FraimedScopeAuthority(
+        os.environ.get(
+            FRAIMED_URL_ENV,
+            "https://www.fraimed.ai/api/mcp",
+        ),
+        os.environ.get(FRAIMED_TOKEN_ENV, ""),
+    )
     server = FastMCP(
         "ProjectLore",
         instructions="Read-only project meaning and deterministic policy tools.",
@@ -30,8 +43,17 @@ def create_server(model_path: Path) -> FastMCP:
         return ModelService(model_path).context_for_task(task)
 
     @server.tool(name="policy_check", structured_output=True)
-    def policy_check(request: PolicyRequest) -> dict[str, Any]:
-        return evaluate_policy(ModelService(model_path), request)
+    async def policy_check(
+        facts: dict[str, str],
+        frame_id: str,
+        space_id: str,
+    ) -> dict[str, Any]:
+        scope = await authority.current_scope(frame_id, space_id)
+        return evaluate_policy(
+            ModelService(model_path),
+            PolicyRequest(facts=facts, scope=scope),
+            scope_obtained_via="fraimed_mcp",
+        )
 
     return server
 

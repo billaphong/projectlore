@@ -35,6 +35,7 @@ class ScopeReceipt(BaseModel):
     scope_digest: str = Field(pattern=r"^sha256:")
     fresh: bool
     claim: Literal["scope_observed"]
+    obtained_via: Literal["fraimed_mcp", "provided_snapshot"]
 
     @model_validator(mode="after")
     def receipt_is_fresh(self) -> ScopeReceipt:
@@ -48,6 +49,7 @@ def issue_scope_receipt(
     *,
     now: datetime | None = None,
     maximum_age_seconds: int = 300,
+    obtained_via: Literal["fraimed_mcp", "provided_snapshot"] = "provided_snapshot",
 ) -> ScopeReceipt:
     evaluated_at = now or datetime.now(UTC)
     observed_at = snapshot.observed_at
@@ -68,4 +70,5 @@ def issue_scope_receipt(
         scope_digest=f"sha256:{hashlib.sha256(encoded).hexdigest()}",
         fresh=fresh,
         claim="scope_observed",
+        obtained_via=obtained_via,
     )

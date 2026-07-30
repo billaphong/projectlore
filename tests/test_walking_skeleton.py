@@ -12,6 +12,7 @@ from typing import Any
 import yaml
 
 from projectlore.cli import main
+from projectlore.fraimed import ScopeAuthority
 from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.scope import ScopeSnapshot
@@ -71,7 +72,7 @@ def test_frozen_policy_corpus_matches_all_expected_outcomes() -> None:
 
 def test_mcp_tools_return_the_same_digests_as_the_core() -> None:
     service = ModelService(MODEL)
-    server = create_server(MODEL)
+    server = create_server(MODEL, StaticScopeAuthority())
 
     status_result = asyncio.run(server.call_tool("model_status", {}))
     context_result = asyncio.run(
@@ -92,13 +93,13 @@ def test_mcp_tools_return_the_same_digests_as_the_core() -> None:
         server.call_tool(
             "policy_check",
             {
-                "request": {
-                    "facts": {
-                        "demand_issued_at": "2026-07-22T12:00:00Z",
-                        "snapshot_created_at": "2026-07-22T12:00:00Z",
-                    },
-                    "scope": scope().model_dump(mode="json"),
+                "facts": {
+                    "demand_issued_at": "2026-07-22T12:00:00Z",
+                    "snapshot_created_at": "2026-07-22T12:00:00Z",
                 }
+                ,
+                "frame_id": "019fb0b0-2e3d-720a-858f-10444184fe59",
+                "space_id": "019e67a2-d321-74b7-ba2a-90a93a26f630",
             },
         )
     )
@@ -106,6 +107,7 @@ def test_mcp_tools_return_the_same_digests_as_the_core() -> None:
     policy = policy_result[1]
     assert policy["contract_digest"] == status["contract_digest"]
     assert policy["model_digest"] == status["model_digest"]
+    assert policy["scope_receipt"]["obtained_via"] == "fraimed_mcp"
 
 
 def test_policy_operations_do_not_modify_the_model() -> None:
@@ -247,3 +249,10 @@ def _run_hook(event: dict[str, Any]) -> subprocess.CompletedProcess[str]:
         timeout=3,
         check=False,
     )
+
+
+class StaticScopeAuthority(ScopeAuthority):
+    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
+        assert frame_id
+        assert space_id
+        return scope()

@@ -133,5 +133,5 @@ def _tool_contract() -> dict[str, object]:
     return {
         "model_status": {"arguments": []},
         "context_for_task": {"arguments": ["task"]},
-        "policy_check": {"arguments": ["facts", "scope"]},
+        "policy_check": {"arguments": ["facts", "frame_id", "space_id"]},
     }

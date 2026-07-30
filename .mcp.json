@@ -9,7 +9,9 @@
         "projectlore.mcp_server"
       ],
       "env": {
-        "PROJECTLORE_MODEL": "examples/homebrew.forecast-trust.project.yaml"
+        "PROJECTLORE_MODEL": "examples/homebrew.forecast-trust.project.yaml",
+        "PROJECTLORE_FRAIMED_MCP_URL": "https://www.fraimed.ai/api/mcp",
+        "FRAIMED_API_TOKEN": "${FRAIMED_API_TOKEN}"
       }
     }
   }
