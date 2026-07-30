@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from projectlore.doctor import run_doctor
+from projectlore.doctor import SUPPORTED_SCHEMA_VERSIONS, run_doctor
 from projectlore.hook_event import normalize_hook_event
 from projectlore.integration import (
     apply_instruction_previews,
@@ -23,6 +23,7 @@ def test_capability_matrix_names_both_clients_and_degradation() -> None:
     assert matrix["matrix_version"] == "projectlore-client-capabilities/0.1.0"
     assert set(matrix["clients"]) == {"claude_code", "codex_cli"}
     assert "degradation" in matrix["equivalence"]
+    assert "0.2.0" in SUPPORTED_SCHEMA_VERSIONS
 
 
 def test_packaged_capability_matrix_matches_documentation(

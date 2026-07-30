@@ -14,7 +14,6 @@ from typing import Any
 
 from projectlore.integration import capability_matrix
 from projectlore.mcp_server import create_server
-from projectlore.policy import PolicyRequest
 from projectlore.scope import ScopeSnapshot
 from projectlore.service import ModelService
 from projectlore.trust import ClientName, verify_receipt
@@ -31,6 +30,9 @@ class _ScopeAuthority:
             observed_at=datetime.now(UTC),
             authority_ref=f"fraimed://frame/{frame_id}",
         )
+
+
+SUPPORTED_SCHEMA_VERSIONS = {"0.1.0", "0.2.0", "1.0.0"}
 
 
 def run_doctor(root: Path, model_path: Path) -> dict[str, Any]:
@@ -53,8 +55,7 @@ def run_doctor(root: Path, model_path: Path) -> dict[str, Any]:
     }
     trust_clients: tuple[ClientName, ...] = ("claude_code", "codex_cli")
     trust_checks = {
-        name: verify_receipt(root, name, versions[name])
-        for name in trust_clients
+        name: verify_receipt(root, name, versions[name]) for name in trust_clients
     }
     status_result = asyncio.run(
         create_server(model_path, _ScopeAuthority()).call_tool("model_status", {})
@@ -78,8 +79,9 @@ def run_doctor(root: Path, model_path: Path) -> dict[str, Any]:
     process_probe = _probe_process_identity(root, model_path)
     checks = {
         "model_valid": True,
-        "schema_version_supported": service.model.schema_version
-        in {"0.1.0", "1.0.0"},
+        "schema_version_supported": (
+            service.model.schema_version in SUPPORTED_SCHEMA_VERSIONS
+        ),
         "canonical_model_read_only": True,
         "mcp_startup": mcp_status["model_digest"] == service.project.digest,
         "separate_process_identity": (
@@ -87,8 +89,10 @@ def run_doctor(root: Path, model_path: Path) -> dict[str, Any]:
             and process_probe.get("contract_version")
             == service.model_status()["contract_version"]
         ),
-        "hook_fired_and_blocked": hook_probe["returncode"] == 2
-        and "ProjectLore blocked" in str(hook_probe["stderr"]),
+        "hook_fired_and_blocked": (
+            hook_probe["returncode"] == 2
+            and "ProjectLore policy input rejected" in str(hook_probe["stderr"])
+        ),
         **version_checks,
         **config_checks,
     }
@@ -138,28 +142,12 @@ def _contains(path: Path, value: str) -> bool:
 
 
 def _probe_hook(root: Path, model_path: Path) -> dict[str, object]:
-    scope = ScopeSnapshot(
-        authority="fraimed",
-        frame_id="doctor",
-        frame_title="ProjectLore doctor",
-        frame_status="in_progress",
-        validation_open=0,
-        observed_at=datetime.now(UTC),
-        authority_ref="fraimed://frame/doctor",
-    )
-    request = PolicyRequest(
-        facts={
-            "demand_issued_at": "2026-07-22T12:00:01Z",
-            "snapshot_created_at": "2026-07-22T12:00:00Z",
-        },
-        scope=scope,
-    )
     event = {
         "cwd": str(root),
         "tool_name": "Write",
         "tool_input": {
             "file_path": str(root / "doctor.projectlore-policy.json"),
-            "content": request.model_dump_json(),
+            "content": "{invalid-json",
         },
     }
     environment = {
