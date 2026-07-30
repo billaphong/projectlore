@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from projectlore.compiler import ProjectModel
+from projectlore.query import QueryService
 from projectlore.scope import ScopeReceipt, ScopeSnapshot, issue_scope_receipt
 from projectlore.service import ModelService
 
@@ -42,6 +44,74 @@ class PolicyResult(BaseModel):
     scope_receipt: ScopeReceipt
 
 
+class PolicyService:
+    """Pure policy evaluation over an immutable compiled model."""
+
+    def __init__(self, project: ProjectModel) -> None:
+        self.project = project
+        self._query = QueryService(project)
+
+    def check(
+        self,
+        request: PolicyRequest,
+        *,
+        scope_obtained_via: Literal[
+            "fraimed_mcp", "provided_snapshot"
+        ] = "provided_snapshot",
+    ) -> dict[str, Any]:
+        receipt = issue_scope_receipt(
+            request.scope,
+            obtained_via=scope_obtained_via,
+        )
+        if not receipt.fresh:
+            finding = Finding(
+                rule_id="projectlore:workflow/current-scope",
+                decision="indeterminate",
+                outcome="stale_dependency",
+                message="Workflow scope is stale; policy cannot be decided.",
+                source_refs=[],
+            )
+            return self._query.envelope(
+                PolicyResult(
+                    decision="indeterminate",
+                    findings=[finding],
+                    scope_receipt=receipt,
+                ).model_dump(mode="json"),
+                result_state="complete",
+            )
+        rules = {rule.id: rule for rule in self.project.model.rules}
+        findings = _findings(request.facts, rules)
+        applicable = [finding for finding in findings if finding is not None]
+        if not applicable:
+            decision: PolicyDecision = "not_applicable"
+        elif any(finding.decision == "fail" for finding in applicable):
+            decision = "fail"
+        elif any(finding.decision == "indeterminate" for finding in applicable):
+            decision = "indeterminate"
+        else:
+            decision = "pass"
+        result = PolicyResult(
+            decision=decision,
+            findings=applicable,
+            scope_receipt=receipt,
+        )
+        source_refs = {
+            source_ref
+            for finding in applicable
+            for source_ref in finding.source_refs
+        }
+        sources = [
+            source
+            for source in self.project.model.sources
+            if source.id in source_refs
+        ]
+        return self._query.envelope(
+            result.model_dump(mode="json"),
+            result_state="complete",
+            provenance=sources,
+        )
+
+
 def policy_check(
     service: ModelService,
     request: PolicyRequest,
@@ -50,14 +120,18 @@ def policy_check(
         "fraimed_mcp", "provided_snapshot"
     ] = "provided_snapshot",
 ) -> dict[str, Any]:
-    receipt = issue_scope_receipt(
-        request.scope,
-        obtained_via=scope_obtained_via,
+    return PolicyService(service.project).check(
+        request,
+        scope_obtained_via=scope_obtained_via,
     )
-    rules = {rule.id: rule for rule in service.model.rules}
-    findings = [
+
+
+def _findings(
+    facts: dict[str, str], rules: dict[str, Any]
+) -> list[Finding | None]:
+    return [
         _compare(
-            request.facts,
+            facts,
             rules,
             CALIBRATION_RULE,
             "calibration_backtest_end",
@@ -66,7 +140,7 @@ def policy_check(
             "Calibration evidence postdates forecast issue.",
         ),
         _compare(
-            request.facts,
+            facts,
             rules,
             ISSUE_RULE,
             "demand_issued_at",
@@ -75,7 +149,7 @@ def policy_check(
             "Demand was issued after snapshot creation.",
         ),
         _compare(
-            request.facts,
+            facts,
             rules,
             HORIZON_RULE,
             "safety_lookahead_end",
@@ -84,21 +158,6 @@ def policy_check(
             "Demand does not cover the complete safety lookahead.",
         ),
     ]
-    applicable = [finding for finding in findings if finding is not None]
-    if not applicable:
-        decision: PolicyDecision = "not_applicable"
-    elif any(finding.decision == "fail" for finding in applicable):
-        decision = "fail"
-    elif any(finding.decision == "indeterminate" for finding in applicable):
-        decision = "indeterminate"
-    else:
-        decision = "pass"
-    result = PolicyResult(
-        decision=decision,
-        findings=applicable,
-        scope_receipt=receipt,
-    )
-    return service.envelope(result.model_dump(mode="json"))
 
 
 def _compare(

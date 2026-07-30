@@ -7,7 +7,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from projectlore.models import StrictModel
 
@@ -34,13 +34,6 @@ class ScopeReceipt(StrictModel):
     fresh: bool
     claim: Literal["scope_observed"]
     obtained_via: Literal["fraimed_mcp", "provided_snapshot"]
-
-    @model_validator(mode="after")
-    def receipt_is_fresh(self) -> ScopeReceipt:
-        if not self.fresh:
-            raise ValueError("Fraimed scope snapshot is stale.")
-        return self
-
 
 def issue_scope_receipt(
     snapshot: ScopeSnapshot,

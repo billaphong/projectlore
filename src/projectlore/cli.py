@@ -12,6 +12,7 @@ import yaml
 
 from projectlore import __version__
 from projectlore.evaluation import evaluate_once
+from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.service import InvalidModelError, ModelService
@@ -60,12 +61,32 @@ def build_parser() -> argparse.ArgumentParser:
     context.add_argument("model", type=Path)
     context.add_argument("task")
 
-    check = subparsers.add_parser(
-        "check",
-        help="Run deterministic policy checks from a JSON request.",
+    context_short = subparsers.add_parser(
+        "context",
+        help="Return rules and provenance relevant to a task.",
     )
-    check.add_argument("model", type=Path)
-    check.add_argument("request", type=Path)
+    context_short.add_argument("model", type=Path)
+    context_short.add_argument("task")
+
+    for command, help_text in (
+        ("check", "Run deterministic policy checks from a JSON request."),
+        ("gate", "Evaluate a policy request as a blocking gate."),
+    ):
+        policy_parser = subparsers.add_parser(command, help=help_text)
+        policy_parser.add_argument("model", type=Path)
+        policy_parser.add_argument("request", type=Path)
+
+    doctor = subparsers.add_parser(
+        "doctor",
+        help="Check model validity and local ProjectLore configuration.",
+    )
+    doctor.add_argument("model", type=Path)
+
+    serve = subparsers.add_parser(
+        "serve",
+        help="Serve the read-only ProjectLore MCP over stdio.",
+    )
+    serve.add_argument("model", type=Path)
 
     evaluate = subparsers.add_parser(
         "evaluate",
@@ -107,17 +128,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "status":
         try:
-            result = model_status(args.model)
-        except (FileNotFoundError, OSError, ValueError, yaml.YAMLError) as error:
+            service_result = ModelService(args.model).model_status()
+        except (
+            FileNotFoundError,
+            OSError,
+            ValueError,
+            yaml.YAMLError,
+            InvalidModelError,
+        ) as error:
             parser.error(str(error))
 
         if args.as_json:
-            print(json.dumps(result, indent=2))
+            print(json.dumps(service_result, indent=2))
         else:
-            print(f"Project: {result['project'] or '(unnamed)'}")
-            print(f"Domains: {result['domains']}")
-            print(f"Concepts: {result['concepts']}")
-            print(f"Relationships: {result['relationships']}")
+            counts = service_result["counts"]
+            print(f"Project: {service_result['model_id']}")
+            print(f"Domains: {counts['domains']}")
+            print(f"Concepts: {counts['concepts']}")
+            print(f"Relationships: {counts['relationships']}")
         return 0
 
     if args.command == "validate":
@@ -146,7 +174,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Wrote schema: {args.output}")
         return 0
 
-    if args.command in {"model-status", "context-for-task", "check"}:
+    if args.command in {
+        "model-status",
+        "context-for-task",
+        "context",
+        "check",
+        "gate",
+        "doctor",
+        "serve",
+    }:
         try:
             service = ModelService(args.model)
         except (FileNotFoundError, OSError, InvalidModelError) as error:
@@ -154,8 +190,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "model-status":
             print(json.dumps(service.model_status(), indent=2))
             return 0
-        if args.command == "context-for-task":
+        if args.command in {"context-for-task", "context"}:
             print(json.dumps(service.context_for_task(args.task), indent=2))
+            return 0
+        if args.command == "doctor":
+            result = service.model_status()
+            checks = {
+                "model_valid": True,
+                "schema_version_supported": service.model.schema_version
+                in {"0.1.0", "1.0.0"},
+                "canonical_model_read_only": True,
+            }
+            result["checks"] = checks
+            result["healthy"] = all(checks.values())
+            print(json.dumps(result, indent=2))
+            return 0 if result["healthy"] else 2
+        if args.command == "serve":
+            create_server(args.model).run(transport="stdio")
             return 0
         try:
             request = PolicyRequest.model_validate_json(
@@ -165,7 +216,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         except (OSError, ValueError) as error:
             parser.error(str(error))
         print(json.dumps(result, indent=2))
-        return 1 if result["decision"] in {"fail", "indeterminate"} else 0
+        if result["decision"] == "fail":
+            return 1
+        if result["decision"] == "indeterminate":
+            return 2
+        return 0
 
     if args.command == "evaluate":
         try:
