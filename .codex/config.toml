@@ -1,0 +1,7 @@
+[mcp_servers.projectlore]
+command = "python"
+args = ["-I", "-m", "projectlore.mcp_server"]
+cwd = "."
+
+[mcp_servers.projectlore.env]
+PROJECTLORE_MODEL = "examples/homebrew.forecast-trust.project.yaml"

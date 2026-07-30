@@ -1,0 +1,150 @@
+id: lore:homebrew/forecast-trust
+name: Homebrew forecast snapshot trust
+description: >
+  Pilot project knowledge model for the temporal trust boundary of Homebrew
+  replenishment demand snapshots.
+schema_version: 0.1.0
+model_version: 0.1.0
+
+domains:
+  - id: lore:homebrew/forecast-trust
+    name: Forecast snapshot trust
+    description: >
+      Temporal rules that decide whether demand and calibration evidence may be
+      admitted to replenishment planning.
+    terms:
+      - value: forecast issue
+        meaning: The instant at which a demand forecast became available.
+        preferred: true
+      - value: backtest evidence
+        meaning: Historical observations used to justify forecast calibration.
+        preferred: true
+      - value: safety lookahead
+        meaning: The complete interval for which safety demand must be available.
+        preferred: true
+    source_refs:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/forecasting-contract-tests
+
+concepts:
+  - id: lore:homebrew/demand-snapshot
+    name: Demand snapshot
+    description: >
+      A versioned demand scenario admitted to a replenishment snapshot only
+      when its temporal evidence is internally consistent.
+    domain_ref: lore:homebrew/forecast-trust
+    rule_refs:
+      - lore:homebrew/rule/calibration-predates-forecast
+      - lore:homebrew/rule/forecast-issued-by-snapshot
+      - lore:homebrew/rule/demand-covers-safety-lookahead
+    implementation_anchors:
+      - repository: homebrew
+        path: lib/replenishment/forecasting-contracts.ts
+        symbol: demandScenarioSchema
+        revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+      - repository: homebrew
+        path: lib/replenishment/forecasting-contracts.ts
+        symbol: replenishmentSnapshotSchema
+        revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+      - repository: homebrew
+        path: lib/replenishment/forecasting-contracts.ts
+        symbol: classifySnapshotReadiness
+        revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+    source_refs:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/forecasting-contract-tests
+
+  - id: lore:homebrew/calibration-evidence
+    name: Calibration evidence
+    description: >
+      Backtest observations that must be knowable before the forecast they
+      justify is issued.
+    domain_ref: lore:homebrew/forecast-trust
+    rule_refs:
+      - lore:homebrew/rule/calibration-predates-forecast
+    implementation_anchors:
+      - repository: homebrew
+        path: lib/seed/v2/orchestration/prismaForecastDeliveryProvider.ts
+        symbol: createPrismaForecastDeliveryEvidenceProvider
+        revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+    source_refs:
+      - lore:source/homebrew/calibration-provider
+      - lore:source/homebrew/calibration-provider-test
+
+relationships:
+  - id: lore:homebrew/calibration-validates-demand
+    subject_ref: lore:homebrew/calibration-evidence
+    predicate: validates
+    object_ref: lore:homebrew/demand-snapshot
+    description: Historical calibration evidence supports a demand snapshot.
+    source_refs:
+      - lore:source/homebrew/forecasting-contracts
+
+rules:
+  - id: lore:homebrew/rule/calibration-predates-forecast
+    statement: >
+      Calibration backtestEnd must be less than or equal to demand issuedAt.
+    kind: invariant
+    severity: blocker
+    source_refs:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/calibration-provider
+      - lore:source/homebrew/calibration-provider-test
+    rationale: >
+      Calibration based on observations after forecast issue is a look-ahead
+      leak and cannot justify that forecast.
+    remediation: >
+      Exclude current or future accuracy records; use only records whose
+      recordDate predates the planning business date.
+
+  - id: lore:homebrew/rule/forecast-issued-by-snapshot
+    statement: Demand issuedAt must not be after snapshot createdAt.
+    kind: invariant
+    severity: blocker
+    source_refs:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/forecasting-contract-tests
+    rationale: A snapshot cannot contain demand that did not yet exist.
+    remediation: Reject the snapshot and rebuild it from evidence available at creation.
+
+  - id: lore:homebrew/rule/demand-covers-safety-lookahead
+    statement: >
+      Demand validThrough must be greater than or equal to safetyLookaheadEnd.
+    kind: invariant
+    severity: error
+    source_refs:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/forecasting-contract-tests
+    rationale: Planning cannot prove safety beyond the demand horizon it trusts.
+    remediation: >
+      Classify the snapshot as input_untrusted and do not publish a plan until
+      the demand horizon covers the complete safety lookahead.
+
+sources:
+  - id: lore:source/homebrew/forecasting-contracts
+    kind: code
+    uri: file:../homebrew/lib/replenishment/forecasting-contracts.ts
+    title: Forecasting contracts and snapshot readiness
+    revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+    observed_at: "2026-07-29"
+
+  - id: lore:source/homebrew/forecasting-contract-tests
+    kind: code
+    uri: file:../homebrew/tests/unit/replenishment/forecasting-contracts.test.ts
+    title: Forecasting contract regression tests
+    revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+    observed_at: "2026-07-29"
+
+  - id: lore:source/homebrew/calibration-provider
+    kind: code
+    uri: file:../homebrew/lib/seed/v2/orchestration/prismaForecastDeliveryProvider.ts
+    title: Auto Data forecast delivery evidence provider
+    revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+    observed_at: "2026-07-29"
+
+  - id: lore:source/homebrew/calibration-provider-test
+    kind: code
+    uri: file:../homebrew/tests/unit/seed/v2/orchestration/prismaForecastDeliveryProvider.test.ts
+    title: Calibration look-ahead regression test
+    revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+    observed_at: "2026-07-29"

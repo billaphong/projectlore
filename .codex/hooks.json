@@ -1,0 +1,19 @@
+{
+  "description": "ProjectLore policy enforcement for the Homebrew pilot.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I -m projectlore.hook",
+            "commandWindows": ".venv\\Scripts\\python.exe -I -m projectlore.hook",
+            "timeout": 3,
+            "statusMessage": "Checking ProjectLore policy"
+          }
+        ]
+      }
+    ]
+  }
+}

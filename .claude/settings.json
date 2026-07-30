@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -I -m projectlore.hook",
+            "timeout": 3,
+            "statusMessage": "Checking ProjectLore policy"
+          }
+        ]
+      }
+    ]
+  }
+}

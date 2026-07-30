@@ -1,0 +1,103 @@
+corpus_id: homebrew-forecast-trust-v1
+frozen_at: "2026-07-29"
+homebrew_revision: b6a85e4fc0f57344b7a1c574ce179fc060a313cf
+model: examples/homebrew.forecast-trust.project.yaml
+
+questions:
+  - id: q1
+    prompt: What temporal relationship must calibration evidence have to forecast issue?
+    expected_rule_ids:
+      - lore:homebrew/rule/calibration-predates-forecast
+    expected_source_ids:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/calibration-provider
+
+  - id: q2
+    prompt: Why must current-day actual sales not calibrate the same day's plan?
+    expected_rule_ids:
+      - lore:homebrew/rule/calibration-predates-forecast
+    expected_source_ids:
+      - lore:source/homebrew/calibration-provider
+      - lore:source/homebrew/calibration-provider-test
+
+  - id: q3
+    prompt: What happens when a forecast was issued after its snapshot was created?
+    expected_rule_ids:
+      - lore:homebrew/rule/forecast-issued-by-snapshot
+    expected_source_ids:
+      - lore:source/homebrew/forecasting-contracts
+
+  - id: q4
+    prompt: What happens when demand expires before the safety lookahead ends?
+    expected_rule_ids:
+      - lore:homebrew/rule/demand-covers-safety-lookahead
+    expected_source_ids:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/forecasting-contract-tests
+
+  - id: q5
+    prompt: Where is the current-day calibration exclusion implemented and tested?
+    expected_rule_ids:
+      - lore:homebrew/rule/calibration-predates-forecast
+    expected_source_ids:
+      - lore:source/homebrew/calibration-provider
+      - lore:source/homebrew/calibration-provider-test
+
+  - id: q6
+    prompt: Give all forecast snapshot trust rules and their deterministic outcomes.
+    expected_rule_ids:
+      - lore:homebrew/rule/calibration-predates-forecast
+      - lore:homebrew/rule/forecast-issued-by-snapshot
+      - lore:homebrew/rule/demand-covers-safety-lookahead
+    expected_source_ids:
+      - lore:source/homebrew/forecasting-contracts
+      - lore:source/homebrew/forecasting-contract-tests
+
+policy_cases:
+  - id: p1-calibration-violation
+    rule_id: lore:homebrew/rule/calibration-predates-forecast
+    facts:
+      calibration_backtest_end: "2026-07-22T11:30:00Z"
+      demand_issued_at: "2026-07-22T11:00:00Z"
+    expected: violation
+    expected_outcome: reject_snapshot
+
+  - id: p2-calibration-compliant
+    rule_id: lore:homebrew/rule/calibration-predates-forecast
+    facts:
+      calibration_backtest_end: "2026-07-22T10:59:59Z"
+      demand_issued_at: "2026-07-22T11:00:00Z"
+    expected: compliant
+    expected_outcome: no_finding
+
+  - id: p3-future-issue-violation
+    rule_id: lore:homebrew/rule/forecast-issued-by-snapshot
+    facts:
+      demand_issued_at: "2026-07-22T12:01:00Z"
+      snapshot_created_at: "2026-07-22T12:00:00Z"
+    expected: violation
+    expected_outcome: reject_snapshot
+
+  - id: p4-future-issue-compliant
+    rule_id: lore:homebrew/rule/forecast-issued-by-snapshot
+    facts:
+      demand_issued_at: "2026-07-22T12:00:00Z"
+      snapshot_created_at: "2026-07-22T12:00:00Z"
+    expected: compliant
+    expected_outcome: no_finding
+
+  - id: p5-horizon-violation
+    rule_id: lore:homebrew/rule/demand-covers-safety-lookahead
+    facts:
+      demand_valid_through: "2026-07-23T11:59:59Z"
+      safety_lookahead_end: "2026-07-23T12:00:00Z"
+    expected: violation
+    expected_outcome: input_untrusted
+
+  - id: p6-horizon-compliant
+    rule_id: lore:homebrew/rule/demand-covers-safety-lookahead
+    facts:
+      demand_valid_through: "2026-07-23T12:00:00Z"
+      safety_lookahead_end: "2026-07-23T12:00:00Z"
+    expected: compliant
+    expected_outcome: no_finding

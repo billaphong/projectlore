@@ -1,0 +1,539 @@
+{
+  "$defs": {
+    "Concept": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "domain_ref": {
+          "title": "Domain Ref",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "implementation_anchors": {
+          "items": {
+            "$ref": "#/$defs/ImplementationAnchor"
+          },
+          "title": "Implementation Anchors",
+          "type": "array"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "rule_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rule Refs",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/KnowledgeStatus",
+          "default": "asserted"
+        },
+        "terms": {
+          "items": {
+            "$ref": "#/$defs/Term"
+          },
+          "title": "Terms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "domain_ref"
+      ],
+      "title": "Concept",
+      "type": "object"
+    },
+    "Domain": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "terms": {
+          "items": {
+            "$ref": "#/$defs/Term"
+          },
+          "title": "Terms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Domain",
+      "type": "object"
+    },
+    "ImplementationAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "repository": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repository"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "ImplementationAnchor",
+      "type": "object"
+    },
+    "KnowledgeStatus": {
+      "enum": [
+        "asserted",
+        "deprecated",
+        "inferred",
+        "suggested"
+      ],
+      "title": "KnowledgeStatus",
+      "type": "string"
+    },
+    "Relationship": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "object_ref": {
+          "title": "Object Ref",
+          "type": "string"
+        },
+        "predicate": {
+          "$ref": "#/$defs/RelationshipKind"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/KnowledgeStatus",
+          "default": "asserted"
+        },
+        "subject_ref": {
+          "title": "Subject Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_ref",
+        "predicate",
+        "object_ref"
+      ],
+      "title": "Relationship",
+      "type": "object"
+    },
+    "RelationshipKind": {
+      "enum": [
+        "contains",
+        "depends_on",
+        "governs",
+        "implements",
+        "is_a",
+        "relates_to",
+        "supersedes",
+        "validates"
+      ],
+      "title": "RelationshipKind",
+      "type": "string"
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/RuleKind"
+        },
+        "rationale": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rationale"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Remediation"
+        },
+        "severity": {
+          "$ref": "#/$defs/RuleSeverity"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/KnowledgeStatus",
+          "default": "asserted"
+        }
+      },
+      "required": [
+        "id",
+        "statement",
+        "kind",
+        "severity"
+      ],
+      "title": "Rule",
+      "type": "object"
+    },
+    "RuleKind": {
+      "enum": [
+        "advisory",
+        "convention",
+        "invariant",
+        "obligation",
+        "prohibition"
+      ],
+      "title": "RuleKind",
+      "type": "string"
+    },
+    "RuleSeverity": {
+      "enum": [
+        "blocker",
+        "error",
+        "info",
+        "warning"
+      ],
+      "title": "RuleSeverity",
+      "type": "string"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision"
+        },
+        "status": {
+          "$ref": "#/$defs/KnowledgeStatus",
+          "default": "asserted"
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uri"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "assertion",
+        "code",
+        "decision",
+        "documentation",
+        "external",
+        "inference",
+        "specification",
+        "work"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    },
+    "Term": {
+      "additionalProperties": false,
+      "properties": {
+        "meaning": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Meaning"
+        },
+        "preferred": {
+          "default": false,
+          "title": "Preferred",
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/KnowledgeStatus",
+          "default": "asserted"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "Term",
+      "type": "object"
+    }
+  },
+  "$id": "https://projectlore.ai/schema/projectlore.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "concepts": {
+      "items": {
+        "$ref": "#/$defs/Concept"
+      },
+      "title": "Concepts",
+      "type": "array"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "domains": {
+      "items": {
+        "$ref": "#/$defs/Domain"
+      },
+      "title": "Domains",
+      "type": "array"
+    },
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "model_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Model Version",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "relationships": {
+      "items": {
+        "$ref": "#/$defs/Relationship"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/Rule"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "schema_version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_version",
+    "id",
+    "name"
+  ],
+  "title": "ProjectLore Project Knowledge Model",
+  "type": "object"
+}

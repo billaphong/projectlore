@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "projectlore"
+version = "0.1.0"
+description = "Give every coding agent the same understanding of your project."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "ProjectLore contributors" },
+]
+dependencies = [
+  "mcp>=1.0,<2",
+  "pydantic>=2.10,<3",
+  "PyYAML>=6.0,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "ruff>=0.9,<1",
+  "types-PyYAML>=6.0,<7",
+]
+
+[project.scripts]
+lore = "projectlore.cli:main"
+projectlore-mcp = "projectlore.mcp_server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/projectlore"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["projectlore"]

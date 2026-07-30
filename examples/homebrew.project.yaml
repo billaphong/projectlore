@@ -1,0 +1,58 @@
+id: lore:homebrew
+name: Homebrew
+description: Example project knowledge model for a multi-tenant application.
+schema_version: 0.1.0
+model_version: 0.1.0
+
+domains:
+  - id: lore:homebrew/tenancy
+    name: Tenancy
+    description: Organization ownership and isolation boundaries.
+    terms:
+      - value: organization
+        meaning: The authenticated ownership boundary for tenant data.
+        preferred: true
+
+concepts:
+  - id: lore:homebrew/organization
+    name: Organization
+    description: The tenant that owns project data and configuration.
+    domain_ref: lore:homebrew/tenancy
+    terms:
+      - value: org
+        meaning: Accepted abbreviation for organization.
+    rule_refs:
+      - lore:homebrew/rule/session-org
+    source_refs:
+      - lore:source/homebrew-agents
+
+  - id: lore:homebrew/tenant-owned-record
+    name: Tenant-owned record
+    description: A persisted record whose visibility is limited to one organization.
+    domain_ref: lore:homebrew/tenancy
+    source_refs:
+      - lore:source/homebrew-agents
+
+relationships:
+  - id: lore:homebrew/organization-owns-record
+    subject_ref: lore:homebrew/organization
+    predicate: governs
+    object_ref: lore:homebrew/tenant-owned-record
+    description: Organization identity governs access to tenant-owned records.
+    source_refs:
+      - lore:source/homebrew-agents
+
+rules:
+  - id: lore:homebrew/rule/session-org
+    statement: Tenant-owned queries derive org_id from the authenticated session.
+    kind: invariant
+    severity: error
+    source_refs:
+      - lore:source/homebrew-agents
+    rationale: Request input is not an authoritative tenant boundary.
+
+sources:
+  - id: lore:source/homebrew-agents
+    kind: specification
+    uri: file:AGENTS.md
+    title: Homebrew agent instructions

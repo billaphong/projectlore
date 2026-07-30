@@ -1,0 +1,51 @@
+{
+  "baseline_id": "projectlore-foundation-only-v1",
+  "captured_at": "2026-07-29",
+  "corpus_id": "homebrew-forecast-trust-v1",
+  "subject": "ProjectLore 0.1 foundation CLI before retrieval and policy tools",
+  "protocol": {
+    "query_command": "lore model_search",
+    "policy_command": "lore policy_check",
+    "runs_per_unsupported_command": 20,
+    "note": "The foundation CLI exposes status, validate, and schema only. Unsupported query and policy commands deterministically establish the pre-implementation baseline."
+  },
+  "measurements": {
+    "retrieval_success": {
+      "successful": 0,
+      "total": 6,
+      "rate": 0.0
+    },
+    "provenance_correctness": {
+      "correct": 0,
+      "total": 6,
+      "rate": 0.0
+    },
+    "policy_catch_rate": {
+      "caught": 0,
+      "violations": 3,
+      "rate": 0.0
+    },
+    "policy_false_positive_rate": {
+      "false_positives": 0,
+      "compliant_cases": 3,
+      "rate": 0.0,
+      "note": "No policy decision was produced; this is not evidence of safe behavior."
+    },
+    "correction_rediscovery": {
+      "rediscovered": 0,
+      "total": 3,
+      "rate": 0.0,
+      "note": "No retrieval surface exists, so a correction cannot be rediscovered through ProjectLore."
+    },
+    "latency_ms": {
+      "p50": 200.317,
+      "p95": 268.255,
+      "note": "Measured across 40 rejected invocations (20 per unsupported command); all exited 2. This is startup-and-error latency, not successful query latency."
+    },
+    "context_size_bytes": {
+      "p50": 517,
+      "p95": 517,
+      "note": "UTF-8 size of the rejected-command response across the same 40 invocations; no usable context payload exists."
+    }
+  }
+}

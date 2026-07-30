@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "projectlore": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "-I",
+        "-m",
+        "projectlore.mcp_server"
+      ],
+      "env": {
+        "PROJECTLORE_MODEL": "examples/homebrew.forecast-trust.project.yaml"
+      }
+    }
+  }
+}
