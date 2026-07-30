@@ -39,4 +39,4 @@ jobs:
           echo "58fefc8f61fa2923e381a99afbb77bb71b0a3b12c38d43f72c25a6d392799629  projectlore-0.1.0a1-py3-none-any.whl" | sha256sum --check
           echo "71d4def68fd8d73e53ff6032b3e26cc37f2c9b610066a025aae73627704080cc  projectlore-0.1.0a1.tar.gz" | sha256sum --check
       - name: Publish identical artifacts to PyPI
-        uses: pypa/gh-action-pypi-publish@a892a5a61159132606e93a2fa6f4358831b04d26
+        uses: pypa/gh-action-pypi-publish@v1.14.2
