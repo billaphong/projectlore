@@ -5,11 +5,13 @@ from pathlib import Path
 import pytest
 
 from projectlore.doctor import run_doctor
+from projectlore.hook_event import normalize_hook_event
 from projectlore.integration import (
     apply_instruction_previews,
     capability_matrix,
     instruction_previews,
 )
+from projectlore.trust import issue_receipt, verify_receipt, write_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "examples" / "homebrew.forecast-trust.project.yaml"
@@ -53,5 +55,37 @@ def test_doctor_proves_versions_mcp_identity_and_blocking_hook() -> None:
     assert result["healthy"] is True
     assert all(result["checks"].values())
     assert result["hook_probe"]["returncode"] == 2
-    assert result["trust"]["verified"] is False
+    assert result["trust"]["claude_code"]["verified"] is False
+    assert result["trust"]["codex_cli"]["verified"] is False
     assert result["enforcement_state"] == "configured_executable_trust_unverified"
+
+
+def test_trust_receipt_is_bound_to_exact_configuration(tmp_path: Path) -> None:
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".mcp.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".claude" / "settings.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "CLAUDE.md").write_text("# Instructions\n", encoding="utf-8")
+    receipt = issue_receipt(tmp_path, "claude_code", "2.1.220")
+    write_receipt(tmp_path, receipt)
+
+    assert verify_receipt(tmp_path, "claude_code", "2.1.220")["verified"] is True
+
+    (tmp_path / "CLAUDE.md").write_text("# Changed\n", encoding="utf-8")
+    result = verify_receipt(tmp_path, "claude_code", "2.1.220")
+    assert result["verified"] is False
+    assert result["state"] == "configuration_drift"
+
+
+def test_both_client_events_normalize_to_equivalent_semantics() -> None:
+    raw = {
+        "cwd": str(ROOT),
+        "tool_name": "Write",
+        "tool_input": {"file_path": "policy.json", "content": "{}"},
+    }
+    claude = normalize_hook_event(raw, client="claude_code")
+    codex = normalize_hook_event(raw, client="codex_cli")
+
+    assert claude.event == codex.event == "PreToolUse"
+    assert claude.cwd == codex.cwd
+    assert claude.tool_name == codex.tool_name
+    assert claude.tool_input == codex.tool_input

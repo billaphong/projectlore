@@ -18,6 +18,7 @@ from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.service import InvalidModelError, ModelService
+from projectlore.trust import issue_receipt, write_receipt
 from projectlore.validation import load_document, validate_path
 
 
@@ -89,6 +90,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Preview managed AGENTS.md and CLAUDE.md instruction blocks.",
     )
     integrate.add_argument("--apply", action="store_true")
+
+    trust = subparsers.add_parser(
+        "trust",
+        help="Record explicit review of current client integration files.",
+    )
+    trust.add_argument("client", choices=("claude_code", "codex_cli"))
+    trust.add_argument("--client-version", required=True)
+    trust.add_argument("--confirm-reviewed", action="store_true")
 
     serve = subparsers.add_parser(
         "serve",
@@ -201,6 +210,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.apply:
             apply_instruction_previews(previews)
         print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "trust":
+        if not args.confirm_reviewed:
+            parser.error(
+                "--confirm-reviewed is required after reviewing trust in the client."
+            )
+        receipt = issue_receipt(Path.cwd(), args.client, args.client_version)
+        path = write_receipt(Path.cwd(), receipt)
+        print(
+            json.dumps(
+                {
+                    "receipt_version": receipt.receipt_version,
+                    "client": receipt.client,
+                    "path": str(path),
+                    "config_digests": receipt.config_digests,
+                },
+                indent=2,
+            )
+        )
         return 0
 
     if args.command in {

@@ -51,6 +51,9 @@ lore context-for-task examples/homebrew.forecast-trust.project.yaml \
   "prevent current-day calibration look-ahead"
 lore integrate
 lore doctor examples/homebrew.forecast-trust.project.yaml
+# After reviewing and approving each client's project MCP and hooks:
+lore trust claude_code --client-version 2.1.220 --confirm-reviewed
+lore trust codex_cli --client-version 0.146.0 --confirm-reviewed
 pytest
 ```
 
@@ -80,7 +83,10 @@ versioned client capability matrix is in `docs/client-capabilities.json`.
 `lore doctor` checks installed client minimums, both project MCP and hook
 configurations, MCP startup, cross-process contract identity, and real hook
 block behavior. Client-owned project and hook trust remains explicitly
-unverified until reviewed in each client.
+unverified until reviewed in each client. `lore trust` then writes a local,
+Git-ignored receipt under `.projectlore/trust/`, bound to the exact client
+version and configuration digests. Any configuration or version drift
+invalidates that receipt.
 
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.

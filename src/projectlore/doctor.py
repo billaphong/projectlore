@@ -17,6 +17,7 @@ from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest
 from projectlore.scope import ScopeSnapshot
 from projectlore.service import ModelService
+from projectlore.trust import ClientName, verify_receipt
 
 
 class _ScopeAuthority:
@@ -49,6 +50,11 @@ def run_doctor(root: Path, model_path: Path) -> dict[str, Any]:
         )
         for name, client in clients.items()
         if isinstance(client, dict)
+    }
+    trust_clients: tuple[ClientName, ...] = ("claude_code", "codex_cli")
+    trust_checks = {
+        name: verify_receipt(root, name, versions[name])
+        for name in trust_clients
     }
     status_result = asyncio.run(
         create_server(model_path, _ScopeAuthority()).call_tool("model_status", {})
@@ -91,12 +97,12 @@ def run_doctor(root: Path, model_path: Path) -> dict[str, Any]:
         "capability_matrix_version": matrix["matrix_version"],
         "client_versions": versions,
         "checks": checks,
-        "trust": {
-            "claude_project_mcp": "requires_user_approval",
-            "codex_project_config_and_hooks": "requires_user_review",
-            "verified": False,
-        },
-        "enforcement_state": "configured_executable_trust_unverified",
+        "trust": trust_checks,
+        "enforcement_state": (
+            "configured_executable_trust_verified"
+            if all(bool(item["verified"]) for item in trust_checks.values())
+            else "configured_executable_trust_unverified"
+        ),
         "hook_probe": hook_probe,
         "process_probe": process_probe,
         "healthy": all(checks.values()),
