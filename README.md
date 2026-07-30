@@ -95,5 +95,15 @@ applicable pre-action violation blocks. Post-action findings are advisory and
 never claim to reverse completed side effects. Session receipts attest only
 that context was requested and resolved—not that an agent understood it.
 
+Executable checker authority is local runtime policy, not canonical model
+content. `CheckerRegistry` accepts only operator-constructed
+`TrustedChecker` entries. Model-provided labels cannot add arguments or change
+the executable, environment, working directory, timeout, output bound,
+dependency pins, or deny-network policy. The runner resolves and confines
+paths, verifies digests, starts no shell, sanitizes the environment, bounds
+captured output, and terminates the process group on timeout. All model,
+Fraimed, documentation, and code context remains explicitly untrusted data;
+common inline credentials are redacted and prompt-like text is never executed.
+
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.
