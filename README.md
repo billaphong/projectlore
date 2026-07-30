@@ -109,5 +109,14 @@ Network exceptions are not supported in this release. All model,
 Fraimed, documentation, and code context remains explicitly untrusted data;
 common inline credentials are redacted and prompt-like text is never executed.
 
+Repository assurance remains evidence-scoped. Changed files resolve to rules
+through implementation anchors; any unmapped change conservatively selects all
+rules. Local adapters delegate to existing Semgrep, architecture-test, or
+project-test commands through the trusted checker registry rather than
+reimplementing their semantics. Local and pre-commit results are explicitly
+`local_advisory`: hooks can be bypassed and never certify a repository or
+protected branch. Hosted CI configuration is not generated or modified without
+repository-specific authorization.
+
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.
