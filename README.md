@@ -152,3 +152,7 @@ The contrasting
 [Sienna campaign-authority pilot](docs/pilots/sienna-campaign-authority.md)
 reuses the same model, MCP, policy-result, and scope-receipt contracts for a
 deterministic C# simulation domain without changing the Sienna repository.
+
+The retained pilots do not currently justify a dedicated product UI. See the
+[dedicated UI decision](docs/ui-decision.md) for the evidence, alternatives,
+and measurable re-evaluation triggers.
