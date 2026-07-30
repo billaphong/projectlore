@@ -1,0 +1,52 @@
+{
+  "matrix_version": "projectlore-client-capabilities/0.1.0",
+  "verified_at": "2026-07-29",
+  "clients": {
+    "claude_code": {
+      "minimum_version": "2.1.220",
+      "instructions": {
+        "file": "CLAUDE.md",
+        "nested_precedence": "ancestor files load at startup; nested files load when their subtree is accessed"
+      },
+      "mcp": {
+        "project_file": ".mcp.json",
+        "requires_project_approval": true,
+        "stdio": true
+      },
+      "hooks": {
+        "project_file": ".claude/settings.json",
+        "events": ["PreToolUse"],
+        "blocking": "exit 2 blocks the matched tool call",
+        "requires_trust": true,
+        "subagents": "PreToolUse applies to matching subagent tool calls"
+      },
+      "managed_policy": "enterprise managed settings are outside ProjectLore's project-local authority"
+    },
+    "codex_cli": {
+      "minimum_version": "0.146.0",
+      "instructions": {
+        "file": "AGENTS.md",
+        "nested_precedence": "root-to-cwd chain; the closest file is appended last and wins"
+      },
+      "mcp": {
+        "project_file": ".codex/config.toml",
+        "requires_project_approval": true,
+        "stdio": true
+      },
+      "hooks": {
+        "project_file": ".codex/hooks.json",
+        "events": ["PreToolUse"],
+        "blocking": "a blocking PreToolUse decision prevents the matched tool call",
+        "requires_trust": true,
+        "subagents": "matching hooks run in agent and subagent lifecycle contexts"
+      },
+      "managed_policy": "managed hooks and requirements are administrator-owned and cannot be installed by ProjectLore"
+    }
+  },
+  "equivalence": {
+    "shared_events": ["PreToolUse"],
+    "normalized_event_contract": "projectlore-hook-event/0.1.0",
+    "comparison": "model_digest and contract_version must match across processes",
+    "degradation": "unsupported events are reported as unavailable, never simulated or described as enforced"
+  }
+}

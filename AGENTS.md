@@ -80,3 +80,14 @@ an empty result.
 - Report files changed, verification performed, and unresolved design choices.
 - Commit, push, publish packages, or create hosted resources only when the user
   authorizes those actions.
+
+
+<!-- PROJECTLORE_MANAGED_START digest=sha256:6bb8dc2e2f083068c448b779555586f4316c35ba5c944d4d054f5d3057f16baa -->
+## ProjectLore agent context
+
+This repository's Git-tracked ProjectLore model is canonical project knowledge.
+Use the project-scoped `projectlore` MCP tools for meaning, terminology,
+relationships, provenance, and policy checks. A closer nested `AGENTS.md` or
+`AGENTS.override.md` takes precedence for its subtree. MCP reads never mutate
+canonical model files; proposed model changes require normal review.
+<!-- PROJECTLORE_MANAGED_END -->

@@ -11,7 +11,9 @@ from pathlib import Path
 import yaml
 
 from projectlore import __version__
+from projectlore.doctor import run_doctor
 from projectlore.evaluation import evaluate_once
+from projectlore.integration import apply_instruction_previews, instruction_previews
 from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.schema import render_json_schema, schema_matches
@@ -81,6 +83,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Check model validity and local ProjectLore configuration.",
     )
     doctor.add_argument("model", type=Path)
+
+    integrate = subparsers.add_parser(
+        "integrate",
+        help="Preview managed AGENTS.md and CLAUDE.md instruction blocks.",
+    )
+    integrate.add_argument("--apply", action="store_true")
 
     serve = subparsers.add_parser(
         "serve",
@@ -174,6 +182,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Wrote schema: {args.output}")
         return 0
 
+    if args.command == "integrate":
+        previews = instruction_previews(Path.cwd())
+        result = {
+            "preview_version": "projectlore-integration-preview/0.1.0",
+            "applied": bool(args.apply),
+            "files": [
+                {
+                    "path": str(item.path),
+                    "before_digest": item.before_digest,
+                    "after_digest": item.after_digest,
+                    "changed": item.changed,
+                    "content": item.content,
+                }
+                for item in previews
+            ],
+        }
+        if args.apply:
+            apply_instruction_previews(previews)
+        print(json.dumps(result, indent=2))
+        return 0
+
     if args.command in {
         "model-status",
         "context-for-task",
@@ -194,15 +223,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(service.context_for_task(args.task), indent=2))
             return 0
         if args.command == "doctor":
-            result = service.model_status()
-            checks = {
-                "model_valid": True,
-                "schema_version_supported": service.model.schema_version
-                in {"0.1.0", "1.0.0"},
-                "canonical_model_read_only": True,
-            }
-            result["checks"] = checks
-            result["healthy"] = all(checks.values())
+            result = run_doctor(Path.cwd(), args.model)
             print(json.dumps(result, indent=2))
             return 0 if result["healthy"] else 2
         if args.command == "serve":

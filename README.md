@@ -49,6 +49,8 @@ lore schema schemas/projectlore.schema.json --check
 lore model-status examples/homebrew.forecast-trust.project.yaml
 lore context-for-task examples/homebrew.forecast-trust.project.yaml \
   "prevent current-day calibration look-ahead"
+lore integrate
+lore doctor examples/homebrew.forecast-trust.project.yaml
 pytest
 ```
 
@@ -70,6 +72,15 @@ explicit project and hook trust review before those integrations run. The
 blocking hook interprets only bounded `*.projectlore-policy.json` inputs,
 confines paths to the repository root, invokes built-in checkers with fixed
 arguments, and performs no network access.
+
+`lore integrate` previews managed ProjectLore blocks for `AGENTS.md` and
+`CLAUDE.md`; it writes only with `--apply`, preserves content outside its
+delimited block, and rejects drift between preview and application. The
+versioned client capability matrix is in `docs/client-capabilities.json`.
+`lore doctor` checks installed client minimums, both project MCP and hook
+configurations, MCP startup, cross-process contract identity, and real hook
+block behavior. Client-owned project and hook trust remains explicitly
+unverified until reviewed in each client.
 
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.
