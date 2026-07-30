@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 
+from projectlore.cli import main
 from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.scope import ScopeSnapshot
@@ -196,6 +197,34 @@ def test_both_client_hook_shapes_allow_compliant_policy_input() -> None:
     )
 
     assert result.returncode == 0
+
+
+def test_lore_check_blocks_violation_and_allows_compliant_fixture(
+    tmp_path: Path,
+) -> None:
+    violation = tmp_path / "violation.json"
+    violation.write_text(
+        _hook_request(
+            {
+                "calibration_backtest_end": "2026-07-22T11:30:00Z",
+                "demand_issued_at": "2026-07-22T11:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    compliant = tmp_path / "compliant.json"
+    compliant.write_text(
+        _hook_request(
+            {
+                "calibration_backtest_end": "2026-07-22T10:59:59Z",
+                "demand_issued_at": "2026-07-22T11:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(["check", str(MODEL), str(violation)]) == 1
+    assert main(["check", str(MODEL), str(compliant)]) == 0
 
 
 def _hook_request(facts: dict[str, str]) -> str:
