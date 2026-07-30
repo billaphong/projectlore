@@ -1,0 +1,44 @@
+name: publish-testpypi
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub prerelease tag to stage
+        required: true
+        default: v0.1.0a1
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/projectlore/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download immutable GitHub release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          mkdir dist
+          gh release download "$RELEASE_TAG" \
+            --repo "${{ github.repository }}" \
+            --dir dist \
+            --pattern "projectlore-*.whl" \
+            --pattern "projectlore-*.tar.gz"
+      - name: Verify v0.1.0a1 artifact hashes
+        if: inputs.tag == 'v0.1.0a1'
+        working-directory: dist
+        run: |
+          echo "58fefc8f61fa2923e381a99afbb77bb71b0a3b12c38d43f72c25a6d392799629  projectlore-0.1.0a1-py3-none-any.whl" | sha256sum --check
+          echo "71d4def68fd8d73e53ff6032b3e26cc37f2c9b610066a025aae73627704080cc  projectlore-0.1.0a1.tar.gz" | sha256sum --check
+      - name: Publish identical artifacts to TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          repository-url: https://test.pypi.org/legacy/
