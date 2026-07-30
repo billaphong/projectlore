@@ -6,10 +6,21 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-import yaml
 from pydantic import ValidationError
 
-from projectlore.models import LifecycleStatus, ProjectKnowledgeModel
+from projectlore.loader import (
+    LoadedDocument,
+    LoaderError,
+    SourceLocation,
+    load_repository_model,
+)
+from projectlore.models import (
+    Authority,
+    AuthorityKind,
+    LifecycleStatus,
+    ProjectKnowledgeModel,
+    TrustLabel,
+)
 
 
 @dataclass(frozen=True)
@@ -17,6 +28,9 @@ class Diagnostic:
     code: str
     message: str
     path: str
+    file: str | None = None
+    line: int | None = None
+    column: int | None = None
 
 
 @dataclass(frozen=True)
@@ -32,10 +46,7 @@ class ValidationReport:
 
 
 def load_document(path: Path) -> Any:
-    if not path.is_file():
-        raise FileNotFoundError(f"Project knowledge model not found: {path}")
-    with path.open(encoding="utf-8") as stream:
-        return yaml.safe_load(stream)
+    return load_repository_model(path).value
 
 
 def validate_document(
@@ -66,17 +77,70 @@ def validate_document(
 
 def validate_path(path: Path) -> tuple[ProjectKnowledgeModel | None, ValidationReport]:
     try:
-        document = load_document(path)
-    except yaml.YAMLError as error:
+        loaded = load_repository_model(path)
+    except LoaderError as error:
         return None, ValidationReport(
             valid=False,
-            diagnostics=(Diagnostic("PL1001", str(error), "$"),),
+            diagnostics=(
+                Diagnostic(
+                    error.code,
+                    str(error),
+                    "$",
+                    str(error.file),
+                    error.line,
+                    error.column,
+                ),
+            ),
         )
-    return validate_document(document)
+    model, report = validate_document(loaded.value)
+    return model, _locate_diagnostics(report, loaded)
+
+
+def _locate_diagnostics(
+    report: ValidationReport,
+    loaded: LoadedDocument,
+) -> ValidationReport:
+    diagnostics: list[Diagnostic] = []
+    for item in report.diagnostics:
+        location = _nearest_location(loaded, item.path)
+        diagnostics.append(
+            Diagnostic(
+                code=item.code,
+                message=item.message,
+                path=item.path,
+                file=None if location is None else str(location.file),
+                line=None if location is None else location.line,
+                column=None if location is None else location.column,
+            )
+        )
+    return ValidationReport(valid=report.valid, diagnostics=tuple(diagnostics))
+
+
+def _nearest_location(
+    loaded: LoadedDocument,
+    model_path: str,
+) -> SourceLocation | None:
+    candidate = model_path
+    while candidate:
+        location = loaded.locations.get(candidate) or loaded.locations.get(
+            f"$.{candidate}"
+        )
+        if location is not None:
+            return location
+        candidate = candidate.rpartition(".")[0]
+    return loaded.locations.get("$")
 
 
 def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
     diagnostics: list[Diagnostic] = []
+    if not model.schema_version.startswith("0."):
+        diagnostics.append(
+            Diagnostic(
+                "PL2301",
+                f"Unsupported schema version {model.schema_version!r}.",
+                "schema_version",
+            )
+        )
     entity_ids: dict[str, str] = {}
 
     groups: list[tuple[str, list[str]]] = [
@@ -202,6 +266,31 @@ def _semantic_diagnostics(model: ProjectKnowledgeModel) -> list[Diagnostic]:
                 source_ids,
                 f"sources.{index}.supersedes",
             )
+        _require_authority_boundary(
+            diagnostics,
+            source.authority,
+            source.trust,
+            f"sources.{index}",
+        )
+
+    source_claims: dict[str, tuple[str | None, str]] = {}
+    for index, source in enumerate(model.sources):
+        if source.uri is None:
+            continue
+        source_prior = source_claims.get(source.uri)
+        if source_prior is not None and source_prior[0] != source.revision:
+            diagnostics.append(
+                Diagnostic(
+                    "PL2302",
+                    (
+                        f"Source URI {source.uri!r} has conflicting revisions "
+                        f"{source_prior[0]!r} and {source.revision!r}."
+                    ),
+                    f"sources.{index}.revision",
+                )
+            )
+        else:
+            source_claims[source.uri] = (source.revision, source.id)
 
     manifest = model.integration_manifest
     if manifest is not None:
@@ -282,3 +371,23 @@ def _require_supersession(
         )
     if superseded_by is not None:
         _require_ref(diagnostics, superseded_by, valid_ids, f"{path}.superseded_by")
+
+
+def _require_authority_boundary(
+    diagnostics: list[Diagnostic],
+    authority: Authority | None,
+    trust: TrustLabel,
+    path: str,
+) -> None:
+    if (
+        authority is not None
+        and authority.kind is AuthorityKind.EXTERNAL
+        and trust is TrustLabel.AUTHORITATIVE
+    ):
+        diagnostics.append(
+            Diagnostic(
+                "PL2303",
+                "External material cannot declare itself project-authoritative.",
+                f"{path}.trust",
+            )
+        )

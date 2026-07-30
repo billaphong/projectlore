@@ -9,6 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from projectlore.compiler import compile_model
 from projectlore.models import ProjectKnowledgeModel, Rule, Source
 from projectlore.validation import ValidationReport, validate_path
 
@@ -34,8 +35,9 @@ class ModelService:
         if model is None or not report.valid:
             raise InvalidModelError(model_path, report)
         self._path = model_path.resolve()
-        self._model = model
-        self._model_digest = _digest(model.model_dump(mode="json"))
+        compiled = compile_model(model)
+        self._model = compiled.model
+        self._model_digest = compiled.digest
         self._contract_digest = _digest(
             {"contract_version": CONTRACT_VERSION, "tools": _tool_contract()}
         )

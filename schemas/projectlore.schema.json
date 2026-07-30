@@ -6,6 +6,7 @@
         "description": {
           "anyOf": [
             {
+              "maxLength": 8192,
               "type": "string"
             },
             {
@@ -19,6 +20,7 @@
           "$ref": "#/$defs/AuthorityKind"
         },
         "reference": {
+          "maxLength": 2048,
           "minLength": 1,
           "title": "Reference",
           "type": "string"
@@ -45,6 +47,7 @@
       "additionalProperties": false,
       "properties": {
         "checker": {
+          "maxLength": 1024,
           "minLength": 1,
           "title": "Checker",
           "type": "string"
@@ -104,6 +107,7 @@
           "default": null
         },
         "description": {
+          "maxLength": 16384,
           "minLength": 1,
           "title": "Description",
           "type": "string"
@@ -141,6 +145,7 @@
           "default": "active"
         },
         "name": {
+          "maxLength": 512,
           "minLength": 1,
           "title": "Name",
           "type": "string"
@@ -209,6 +214,7 @@
         "description": {
           "anyOf": [
             {
+              "maxLength": 16384,
               "type": "string"
             },
             {
@@ -231,6 +237,7 @@
           "type": "string"
         },
         "name": {
+          "maxLength": 512,
           "minLength": 1,
           "title": "Name",
           "type": "string"
@@ -287,6 +294,7 @@
         "description": {
           "anyOf": [
             {
+              "maxLength": 16384,
               "type": "string"
             },
             {
@@ -306,6 +314,7 @@
           "default": "active"
         },
         "name": {
+          "maxLength": 512,
           "minLength": 1,
           "title": "Name",
           "type": "string"
@@ -357,6 +366,7 @@
           "title": "Id"
         },
         "path": {
+          "maxLength": 2048,
           "minLength": 1,
           "title": "Path",
           "type": "string"
@@ -395,6 +405,7 @@
         "symbol": {
           "anyOf": [
             {
+              "maxLength": 1024,
               "type": "string"
             },
             {
@@ -481,6 +492,7 @@
         "description": {
           "anyOf": [
             {
+              "maxLength": 16384,
               "type": "string"
             },
             {
@@ -614,6 +626,7 @@
         "rationale": {
           "anyOf": [
             {
+              "maxLength": 16384,
               "type": "string"
             },
             {
@@ -626,6 +639,7 @@
         "remediation": {
           "anyOf": [
             {
+              "maxLength": 16384,
               "type": "string"
             },
             {
@@ -646,6 +660,7 @@
           "type": "array"
         },
         "statement": {
+          "maxLength": 16384,
           "minLength": 1,
           "title": "Statement",
           "type": "string"
@@ -857,6 +872,7 @@
         "title": {
           "anyOf": [
             {
+              "maxLength": 512,
               "type": "string"
             },
             {
@@ -873,6 +889,7 @@
         "uri": {
           "anyOf": [
             {
+              "maxLength": 2048,
               "type": "string"
             },
             {
@@ -927,6 +944,7 @@
         "meaning": {
           "anyOf": [
             {
+              "maxLength": 8192,
               "type": "string"
             },
             {
@@ -953,6 +971,7 @@
           "default": "asserted"
         },
         "value": {
+          "maxLength": 256,
           "minLength": 1,
           "title": "Value",
           "type": "string"
@@ -987,6 +1006,7 @@
     "description": {
       "anyOf": [
         {
+          "maxLength": 16384,
           "type": "string"
         },
         {
@@ -1025,6 +1045,7 @@
       "type": "string"
     },
     "name": {
+      "maxLength": 512,
       "minLength": 1,
       "title": "Name",
       "type": "string"

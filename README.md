@@ -57,6 +57,13 @@ structural contract is `src/projectlore/models.py`; the portable structural
 contract is the generated JSON Schema; whole-model identity, reference, and
 provenance checks live in the semantic validator.
 
+Repository discovery checks `.projectlore/model.yaml` and then
+`projectlore.yaml`, rejecting ambiguous entrypoints. A model may declare an
+`includes` list of repository-relative YAML files. Loading is UTF-8-only,
+root-confined, symlink-free, SafeLoader-based, and bounded by file size, total
+size, file count, node count, and nesting depth. Diagnostics retain stable codes,
+model paths, source files, and line/column locations where YAML supplies them.
+
 The Homebrew walking skeleton includes project-local MCP and `PreToolUse`
 configuration for Claude Code and Codex. Both clients require their normal
 explicit project and hook trust review before those integrations run. The
