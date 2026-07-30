@@ -125,6 +125,13 @@ rebuilding, ambiguous, and broken results remain explicit and localized; a
 required unavailable lookup is indeterminate. The adapter retains stable
 references and observation digests, never a mirrored code graph.
 
+Long-lived MCP processes use validated request-driven refresh. Valid Git edits
+activate atomically on the next request; malformed edits are disclosed while
+queries continue against the last valid immutable snapshot. Pilot latency and
+corpus measurements did not justify SQLite, a background watcher, embeddings,
+or graph storage; see
+[the scale decision](docs/scale-and-refresh-decision.md).
+
 `lore integration check MODEL [--evidence EVIDENCE.json]` reports the highest
 contiguously proven assurance state and every missing requirement. The only
 states are `available`, `hook_active`, `local_gate_passed`, `ci_gate_passed`,

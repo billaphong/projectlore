@@ -11,9 +11,8 @@ from mcp.server.fastmcp import FastMCP
 from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
 from projectlore.policy import PolicyRequest
 from projectlore.policy import policy_check as evaluate_policy
-from projectlore.query import CONTRACT_VERSION, QueryService
-from projectlore.service import ModelService
-from projectlore.validation import validate_path
+from projectlore.query import QueryService
+from projectlore.refresh import RefreshingModelService
 
 MODEL_ENV = "PROJECTLORE_MODEL"
 FRAIMED_URL_ENV = "PROJECTLORE_FRAIMED_MCP_URL"
@@ -35,25 +34,30 @@ def create_server(
         "ProjectLore",
         instructions="Read-only project meaning and deterministic policy tools.",
     )
+    models = RefreshingModelService(model_path)
 
     @server.tool(name="model_status", structured_output=True)
     def model_status() -> dict[str, Any]:
-        return ModelService(model_path).model_status()
+        snapshot = models.refresh()
+        return snapshot.decorate(snapshot.service.model_status())
 
     @server.tool(name="model_search", structured_output=True)
     def model_search(query: str, limit: int = 20) -> dict[str, Any]:
-        service = ModelService(model_path)
-        return QueryService(service.project).search(query, limit=limit)
+        snapshot = models.refresh()
+        result = QueryService(snapshot.service.project).search(query, limit=limit)
+        return snapshot.decorate(result)
 
     @server.tool(name="model_get_concept", structured_output=True)
     def model_get_concept(concept_id: str) -> dict[str, Any]:
-        service = ModelService(model_path)
-        return QueryService(service.project).get_concept(concept_id)
+        snapshot = models.refresh()
+        result = QueryService(snapshot.service.project).get_concept(concept_id)
+        return snapshot.decorate(result)
 
     @server.tool(name="model_resolve_term", structured_output=True)
     def model_resolve_term(term: str) -> dict[str, Any]:
-        service = ModelService(model_path)
-        return QueryService(service.project).resolve_term(term)
+        snapshot = models.refresh()
+        result = QueryService(snapshot.service.project).resolve_term(term)
+        return snapshot.decorate(result)
 
     @server.tool(name="model_get_relationships", structured_output=True)
     def model_get_relationships(
@@ -62,41 +66,32 @@ def create_server(
         max_depth: int = 1,
         limit: int = 100,
     ) -> dict[str, Any]:
-        service = ModelService(model_path)
-        query = QueryService(service.project)
-        return query.get_relationships(
+        snapshot = models.refresh()
+        query = QueryService(snapshot.service.project)
+        result = query.get_relationships(
             concept_id,
             direction=direction,
             max_depth=max_depth,
             limit=limit,
         )
+        return snapshot.decorate(result)
 
     @server.tool(name="model_validate", structured_output=True)
     def model_validate() -> dict[str, Any]:
-        model, report = validate_path(model_path)
-        if model is not None and report.valid:
-            query = QueryService(ModelService(model_path).project)
-            return query.envelope(
-                {
-                    "valid": True,
-                    "diagnostics": report.to_dict()["diagnostics"],
-                }
-            )
-        return {
-            "contract_version": CONTRACT_VERSION,
-            "contract_digest": None,
-            "model_digest": None,
-            "freshness": {"state": "unavailable"},
-            "authority": {"source_count": 0, "trust": [], "kinds": []},
-            "result_state": "complete",
-            "provenance": [],
-            "valid": report.valid,
-            "diagnostics": report.to_dict()["diagnostics"],
-        }
+        snapshot = models.refresh()
+        query = QueryService(snapshot.service.project)
+        result = query.envelope(
+            {
+                "valid": snapshot.state == "current",
+                "diagnostics": list(snapshot.diagnostics),
+            }
+        )
+        return snapshot.decorate(result)
 
     @server.tool(name="context_for_task", structured_output=True)
     def context_for_task(task: str) -> dict[str, Any]:
-        return ModelService(model_path).context_for_task(task)
+        snapshot = models.refresh()
+        return snapshot.decorate(snapshot.service.context_for_task(task))
 
     @server.tool(name="policy_check", structured_output=True)
     async def policy_check(
@@ -104,11 +99,12 @@ def create_server(
         frame_id: str,
         space_id: str,
     ) -> dict[str, Any]:
-        service = ModelService(model_path)
+        snapshot = models.refresh()
+        service = snapshot.service
         try:
             scope = await authority.current_scope(frame_id, space_id)
         except TimeoutError:
-            return QueryService(service.project).envelope(
+            result = QueryService(service.project).envelope(
                 {
                     "decision": "indeterminate",
                     "findings": [
@@ -123,11 +119,13 @@ def create_server(
                     "scope_receipt": None,
                 }
             )
-        return evaluate_policy(
+            return snapshot.decorate(result)
+        result = evaluate_policy(
             service,
             PolicyRequest(facts=facts, scope=scope),
             scope_obtained_via="fraimed_mcp",
         )
+        return snapshot.decorate(result)
 
     return server
 
