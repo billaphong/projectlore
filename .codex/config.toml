@@ -2,6 +2,9 @@
 command = ".venv/Scripts/python.exe"
 args = ["-I", "-m", "projectlore.mcp_server"]
 cwd = "."
+env_vars = ["FRAIMED_API_TOKEN"]
+required = true
+default_tools_approval_mode = "approve"
 
 [mcp_servers.projectlore.env]
 PROJECTLORE_MODEL = "examples/homebrew.forecast-trust.project.yaml"
