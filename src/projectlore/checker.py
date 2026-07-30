@@ -10,7 +10,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 from pydantic import Field
 
@@ -70,7 +70,59 @@ class CheckerExecution(StrictModel):
     stderr: str
     output_truncated: bool
     network: Literal["deny"]
+    network_enforcement: Literal["not_run", "os_sandbox"]
+    sandbox_backend: str | None
     argv_digest: str
+
+
+class NetworkSandbox(Protocol):
+    """Trusted runtime adapter that enforces a deny-network process boundary."""
+
+    @property
+    def backend_name(self) -> str: ...
+
+    def wrap(
+        self,
+        argv: tuple[str, ...],
+        *,
+        project_root: Path,
+        working_directory: Path,
+    ) -> tuple[str, ...]: ...
+
+
+class BubblewrapSandbox:
+    """Linux network namespace and read-only project mount via bubblewrap."""
+
+    def __init__(self, executable: Path, executable_sha256: str) -> None:
+        resolved = executable.resolve(strict=True)
+        if _sha256(resolved) != executable_sha256:
+            raise CheckerPolicyError("Bubblewrap executable digest does not match.")
+        self._executable = resolved
+
+    @property
+    def backend_name(self) -> str:
+        return "bubblewrap-unshare-net"
+
+    def wrap(
+        self,
+        argv: tuple[str, ...],
+        *,
+        project_root: Path,
+        working_directory: Path,
+    ) -> tuple[str, ...]:
+        return (
+            str(self._executable),
+            "--unshare-net",
+            "--die-with-parent",
+            "--new-session",
+            "--ro-bind",
+            str(project_root),
+            str(project_root),
+            "--chdir",
+            str(working_directory),
+            "--",
+            *argv,
+        )
 
 
 @dataclass(frozen=True)
@@ -100,6 +152,7 @@ def run_checker(
     *,
     project_root: Path,
     environment: Mapping[str, str] | None = None,
+    sandbox: NetworkSandbox | None = None,
 ) -> CheckerExecution:
     """Run one fixed trusted command without a shell or model-controlled arguments."""
 
@@ -116,7 +169,16 @@ def run_checker(
                 f"Trusted checker dependency digest does not match: {relative}"
             )
 
-    argv = (str(executable), *checker.argv[1:])
+    checker_argv = (str(executable), *checker.argv[1:])
+    if sandbox is None:
+        return _not_run(checker, checker_argv, "network_isolation_unavailable")
+    argv = sandbox.wrap(
+        checker_argv,
+        project_root=root,
+        working_directory=cwd,
+    )
+    if not argv:
+        raise CheckerPolicyError("Network sandbox returned an empty argv.")
     env = _safe_environment(environment)
     creationflags = 0
     start_new_session = os.name != "nt"
@@ -143,6 +205,7 @@ def run_checker(
         stdout_bytes, stderr_bytes = process.communicate()
         return _execution(
             checker, argv, "indeterminate", "timeout", None,
+            sandbox.backend_name,
             stdout_bytes, stderr_bytes
         )
     decision: Literal["pass", "fail"] = (
@@ -154,6 +217,7 @@ def run_checker(
         decision,
         "completed" if decision == "pass" else "nonzero_exit",
         process.returncode,
+        sandbox.backend_name,
         stdout_bytes,
         stderr_bytes,
     )
@@ -218,6 +282,7 @@ def _execution(
     decision: Literal["pass", "fail", "indeterminate"],
     reason_code: str,
     exit_code: int | None,
+    sandbox_backend: str,
     stdout: bytes,
     stderr: bytes,
 ) -> CheckerExecution:
@@ -234,6 +299,30 @@ def _execution(
         stderr=stderr_text,
         output_truncated=stdout_cut or stderr_cut,
         network=checker.network,
+        network_enforcement="os_sandbox",
+        sandbox_backend=sandbox_backend,
+        argv_digest=f"sha256:{digest}",
+    )
+
+
+def _not_run(
+    checker: TrustedChecker,
+    argv: tuple[str, ...],
+    reason_code: str,
+) -> CheckerExecution:
+    digest = hashlib.sha256("\0".join(argv).encode()).hexdigest()
+    return CheckerExecution(
+        execution_version="projectlore-checker-execution/0.1.0",
+        checker=checker.name,
+        decision="indeterminate",
+        reason_code=reason_code,
+        exit_code=None,
+        stdout="",
+        stderr="",
+        output_truncated=False,
+        network=checker.network,
+        network_enforcement="not_run",
+        sandbox_backend=None,
         argv_digest=f"sha256:{digest}",
     )
 

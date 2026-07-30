@@ -101,7 +101,11 @@ content. `CheckerRegistry` accepts only operator-constructed
 the executable, environment, working directory, timeout, output bound,
 dependency pins, or deny-network policy. The runner resolves and confines
 paths, verifies digests, starts no shell, sanitizes the environment, bounds
-captured output, and terminates the process group on timeout. All model,
+captured output, and terminates the process group on timeout. External
+execution fails closed unless a trusted operating-system network sandbox is
+supplied. The first concrete backend uses bubblewrap with an unshared network
+namespace and a read-only project bind; its executable is digest-pinned.
+Network exceptions are not supported in this release. All model,
 Fraimed, documentation, and code context remains explicitly untrusted data;
 common inline credentials are redacted and prompt-like text is never executed.
 
