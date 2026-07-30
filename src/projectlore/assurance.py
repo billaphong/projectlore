@@ -4,13 +4,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+import os
+import tempfile
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
 from pydantic import Field
 
-from projectlore.checker import CheckerExecution
+from projectlore.checker import (
+    CheckerExecution,
+    CheckerRegistry,
+    NetworkSandbox,
+    run_checker,
+)
 from projectlore.compiler import ProjectModel
 from projectlore.models import StrictModel
 
@@ -167,9 +174,17 @@ def build_gate_evidence(
     if len(executions) > MAX_EVIDENCE_EXECUTIONS:
         raise ValueError(f"Execution count exceeds {MAX_EVIDENCE_EXECUTIONS}.")
     decisions = {item.decision for item in executions}
+    covered_rules = {
+        rule_id for planned in planned_checks for rule_id in planned.rule_ids
+    }
+    complete_coverage = covered_rules == set(selection.applicable_rule_ids)
     if "fail" in decisions:
         decision: Literal["pass", "fail", "indeterminate"] = "fail"
-    elif "indeterminate" in decisions or len(executions) != len(planned_checks):
+    elif (
+        "indeterminate" in decisions
+        or len(executions) != len(planned_checks)
+        or not complete_coverage
+    ):
         decision = "indeterminate"
     else:
         decision = "pass"
@@ -201,6 +216,65 @@ def build_gate_evidence(
 
 def gate_exit_code(evidence: GateEvidence) -> int:
     return {"pass": 0, "fail": 1, "indeterminate": 2}[evidence.decision]
+
+
+def execute_repository_gate(
+    project: ProjectModel,
+    changed_files: Sequence[str],
+    adapters: Mapping[str, AuthoritativeCheckAdapter],
+    invoke: Callable[[PlannedCheck], CheckerExecution],
+    *,
+    assurance_scope: Literal["local_advisory", "ci_job_result"],
+) -> GateEvidence:
+    """Run delegated authoritative checks and assemble one bounded artifact."""
+
+    selection = resolve_changed_file_impact(project, changed_files)
+    planned = plan_authoritative_checks(project, selection, adapters)
+    executions = tuple(invoke(item) for item in planned)
+    return build_gate_evidence(
+        project,
+        selection,
+        planned,
+        executions,
+        assurance_scope=assurance_scope,
+    )
+
+
+def invoke_authoritative_check(
+    planned: PlannedCheck,
+    *,
+    registry: CheckerRegistry,
+    project_root: Path,
+    sandbox: NetworkSandbox | None,
+) -> CheckerExecution:
+    """Delegate to the exact trusted command configured for the project check."""
+
+    return run_checker(
+        registry,
+        planned.trusted_checker,
+        project_root=project_root,
+        sandbox=sandbox,
+    )
+
+
+def write_gate_evidence(path: Path, evidence: GateEvidence) -> None:
+    """Atomically write a machine-readable evidence artifact."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = evidence.model_dump_json(indent=2)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(payload)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temporary_name).replace(path)
+    except BaseException:
+        Path(temporary_name).unlink(missing_ok=True)
+        raise
 
 
 def _selection(

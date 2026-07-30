@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from projectlore.assurance import (
     AuthoritativeCheckAdapter,
+    GateEvidence,
     build_gate_evidence,
+    execute_repository_gate,
     gate_exit_code,
     plan_authoritative_checks,
     resolve_changed_file_impact,
+    write_gate_evidence,
 )
 from projectlore.checker import CheckerExecution
 from projectlore.compiler import ProjectModel, compile_model
@@ -142,3 +147,60 @@ def test_evidence_is_stable_bounded_and_never_certifies_repository() -> None:
         assurance_scope="ci_job_result",
     )
     assert gate_exit_code(failed) == 1
+
+
+def test_uncovered_applicable_rule_is_indeterminate() -> None:
+    project = _project()
+    selection = resolve_changed_file_impact(project, ["src/unmapped.py"])
+    evidence = build_gate_evidence(
+        project,
+        selection,
+        (),
+        (),
+        assurance_scope="local_advisory",
+    )
+    assert evidence.decision == "indeterminate"
+    assert gate_exit_code(evidence) == 2
+
+
+def test_local_and_ci_like_execution_pass_and_fail_without_credentials(
+    tmp_path: Path,
+) -> None:
+    project = _project()
+    adapter = AuthoritativeCheckAdapter(
+        name="project.tests",
+        kind="project_test",
+        trusted_checker="project.pytest",
+    )
+
+    def compliant(planned: object) -> CheckerExecution:
+        del planned
+        return _execution("pass")
+
+    def violating(planned: object) -> CheckerExecution:
+        del planned
+        return _execution("fail")
+
+    local = execute_repository_gate(
+        project,
+        ["src/owned.py"],
+        {"project.tests": adapter},
+        compliant,
+        assurance_scope="local_advisory",
+    )
+    ci = execute_repository_gate(
+        project,
+        ["src/owned.py"],
+        {"project.tests": adapter},
+        violating,
+        assurance_scope="ci_job_result",
+    )
+    assert gate_exit_code(local) == 0
+    assert gate_exit_code(ci) == 1
+    assert local.repository_certified is ci.repository_certified is False
+
+    output = tmp_path / ".projectlore" / "evidence" / "gate.json"
+    write_gate_evidence(output, ci)
+    assert GateEvidence.model_validate_json(
+        output.read_text(encoding="utf-8")
+    ) == ci
