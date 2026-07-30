@@ -2,8 +2,8 @@
 
 ## Alpha artifact
 
-`0.1.0a1` is a prepared alpha, not a published release. Build from a clean,
-annotated commit using Python 3.11 or newer:
+`0.1.0a2` is a prepared release candidate, not an authorized package-index
+publication. Build from a clean, annotated commit using Python 3.11 or newer:
 
 ```shell
 python -m build
@@ -35,7 +35,9 @@ promoting an alpha requires a separate explicit owner instruction after:
 5. hashes and generated schema are recorded.
 
 The owner selected Apache-2.0 and authorized publication of `0.1.0a1` on
-2026-07-30. Later versions still require their own release authorization.
+2026-07-30. The subsequent product-readiness audit held that version off package
+indexes. `0.1.0a2` and later versions still require their own explicit release
+authorization.
 
 ## Reproducibility
 

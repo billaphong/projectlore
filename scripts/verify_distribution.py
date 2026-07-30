@@ -28,6 +28,7 @@ REQUIRED_SDIST = {
     "docs/client-capabilities.json",
     "docs/compatibility.md",
     "docs/extension-sdk.md",
+    "docs/getting-started.md",
     "docs/release-policy.md",
     "docs/versioning-and-migrations.md",
     "examples/contracts/portable.valid.yaml",
@@ -43,11 +44,7 @@ def _relative_sdist_names(path: Path) -> set[str]:
     roots = {name.split("/", 1)[0] for name in names}
     if len(roots) != 1:
         raise ValueError("Source archive must have exactly one root directory.")
-    return {
-        name.split("/", 1)[1]
-        for name in names
-        if "/" in name
-    }
+    return {name.split("/", 1)[1] for name in names if "/" in name}
 
 
 def _sdist_file(path: Path, relative_name: str) -> bytes:
@@ -104,10 +101,7 @@ def verify(directory: Path) -> None:
     unexpected_wheel = sorted(
         name
         for name in wheel_names
-        if not (
-            name.startswith("projectlore/")
-            or ".dist-info/" in name
-        )
+        if not (name.startswith("projectlore/") or ".dist-info/" in name)
     )
     if unexpected_wheel:
         raise ValueError(f"Unexpected wheel paths: {unexpected_wheel}")

@@ -33,9 +33,7 @@ def apply_instruction_previews(previews: list[ManagedPreview]) -> None:
     """Apply an explicitly reviewed preview, rejecting intervening drift."""
     for preview in previews:
         current = (
-            preview.path.read_text(encoding="utf-8")
-            if preview.path.is_file()
-            else None
+            preview.path.read_text(encoding="utf-8") if preview.path.is_file() else None
         )
         if _digest(current) != preview.before_digest:
             raise ValueError(f"Managed instruction drift detected: {preview.path}")
@@ -46,6 +44,8 @@ def apply_instruction_previews(previews: list[ManagedPreview]) -> None:
 
 def capability_matrix(root: Path) -> dict[str, object]:
     path = root / "docs" / "client-capabilities.json"
+    if not path.is_file():
+        path = Path(__file__).with_name("client-capabilities.json")
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise ValueError("Client capability matrix must be an object.")

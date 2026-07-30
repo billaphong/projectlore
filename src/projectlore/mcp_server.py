@@ -23,13 +23,16 @@ def create_server(
     model_path: Path,
     scope_authority: ScopeAuthority | None = None,
 ) -> FastMCP:
-    authority = scope_authority or FraimedScopeAuthority(
-        os.environ.get(
-            FRAIMED_URL_ENV,
-            "https://www.fraimed.ai/api/mcp",
-        ),
-        os.environ.get(FRAIMED_TOKEN_ENV, ""),
-    )
+    token = os.environ.get(FRAIMED_TOKEN_ENV, "")
+    authority = scope_authority
+    if authority is None and token:
+        authority = FraimedScopeAuthority(
+            os.environ.get(
+                FRAIMED_URL_ENV,
+                "https://www.fraimed.ai/api/mcp",
+            ),
+            token,
+        )
     server = FastMCP(
         "ProjectLore",
         instructions="Read-only project meaning and deterministic policy tools.",
@@ -101,6 +104,25 @@ def create_server(
     ) -> dict[str, Any]:
         snapshot = models.refresh()
         service = snapshot.service
+        if authority is None:
+            result = QueryService(service.project).envelope(
+                {
+                    "decision": "indeterminate",
+                    "findings": [
+                        {
+                            "rule_id": "projectlore:workflow/current-scope",
+                            "decision": "indeterminate",
+                            "outcome": "dependency_unavailable",
+                            "message": (
+                                "Fraimed scope credentials are not configured."
+                            ),
+                            "source_refs": [],
+                        }
+                    ],
+                    "scope_receipt": None,
+                }
+            )
+            return snapshot.decorate(result)
         try:
             scope = await authority.current_scope(frame_id, space_id)
         except TimeoutError:

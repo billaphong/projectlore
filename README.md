@@ -10,6 +10,24 @@ hooks, local checks, and CI without becoming a work tracker or code graph.
 
 ProjectLore is licensed under the [Apache License 2.0](LICENSE).
 
+## Quick start
+
+ProjectLore requires Python 3.11 or newer. In a new Git repository:
+
+```shell
+python -m pip install projectlore==0.1.0a2
+lore init --name "My Project"
+# Review the complete preview, then:
+lore init --name "My Project" --apply
+lore validate projectlore.yaml
+lore context projectlore.yaml "review project knowledge changes"
+```
+
+Review and approve the generated project MCP and hook files in Claude Code and
+Codex before running `lore doctor projectlore.yaml`. ProjectLore never bypasses
+client-owned trust. See the complete [getting-started guide](docs/getting-started.md)
+for configuration review, expected degradation, troubleshooting, and removal.
+
 ## Vocabulary
 
 - **Project knowledge model:** the complete model for a project.

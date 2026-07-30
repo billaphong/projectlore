@@ -44,6 +44,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
         uses: actions/upload-artifact@v7
         with:
-          name: projectlore-0.1.0a1
+          name: projectlore-0.1.0a2
           path: dist/*
           if-no-files-found: error

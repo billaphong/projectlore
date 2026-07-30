@@ -16,6 +16,11 @@ from projectlore.doctor import run_doctor
 from projectlore.evaluation import evaluate_once
 from projectlore.integration import apply_instruction_previews, instruction_previews
 from projectlore.mcp_server import create_server
+from projectlore.onboarding import (
+    INIT_VERSION,
+    apply_initialization,
+    initialization_previews,
+)
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.service import InvalidModelError, ModelService
@@ -51,6 +56,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     schema.add_argument("output", type=Path)
     schema.add_argument("--check", action="store_true")
+
+    initialize = subparsers.add_parser(
+        "init",
+        help="Preview initialization of a ProjectLore-enabled repository.",
+    )
+    initialize.add_argument("--apply", action="store_true")
+    initialize.add_argument(
+        "--name",
+        default=Path.cwd().name,
+        help="Project display name; defaults to the current directory name.",
+    )
+    initialize.add_argument(
+        "--model",
+        type=Path,
+        default=Path("projectlore.yaml"),
+        help="Canonical model path: projectlore.yaml or .projectlore/model.yaml.",
+    )
 
     service_status = subparsers.add_parser(
         "model-status",
@@ -148,9 +170,7 @@ def model_status(path: Path) -> dict[str, object]:
         "project": document.get("name"),
         "domains": len(domains) if isinstance(domains, list) else 0,
         "concepts": len(concepts) if isinstance(concepts, list) else 0,
-        "relationships": (
-            len(relationships) if isinstance(relationships, list) else 0
-        ),
+        "relationships": (len(relationships) if isinstance(relationships, list) else 0),
     }
 
 
@@ -206,8 +226,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Wrote schema: {args.output}")
         return 0
 
+    if args.command == "init":
+        try:
+            init_previews = initialization_previews(
+                Path.cwd(),
+                project_name=args.name,
+                model_path=args.model,
+            )
+            if args.apply:
+                apply_initialization(init_previews)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        result = {
+            "preview_version": INIT_VERSION,
+            "applied": bool(args.apply),
+            "conflicts": [
+                {"path": str(item.path), "reason": item.conflict}
+                for item in init_previews
+                if item.conflict is not None
+            ],
+            "files": [
+                {
+                    "path": str(item.path),
+                    "before_digest": item.before_digest,
+                    "after_digest": item.after_digest,
+                    "changed": item.changed,
+                    "content": item.content,
+                }
+                for item in init_previews
+            ],
+        }
+        print(json.dumps(result, indent=2))
+        return 0
+
     if args.command == "integrate":
-        previews = instruction_previews(Path.cwd())
+        integration_previews = instruction_previews(Path.cwd())
         result = {
             "preview_version": "projectlore-integration-preview/0.1.0",
             "applied": bool(args.apply),
@@ -219,11 +272,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "changed": item.changed,
                     "content": item.content,
                 }
-                for item in previews
+                for item in integration_previews
             ],
         }
         if args.apply:
-            apply_instruction_previews(previews)
+            apply_instruction_previews(integration_previews)
         print(json.dumps(result, indent=2))
         return 0
 

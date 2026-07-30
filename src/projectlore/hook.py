@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from projectlore.loader import discover_model
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.service import ModelService
 
@@ -33,7 +34,7 @@ def main() -> int:
         candidate = _candidate_request(cwd, tool_input)
         if candidate is None:
             return 0
-        model_path = _confined_path(cwd, _model_setting())
+        model_path = _model_setting(cwd)
         service = ModelService(model_path)
         request = PolicyRequest.model_validate_json(candidate)
         result = policy_check(service, request)
@@ -104,11 +105,11 @@ def _confined_path(root: Path, raw_path: str) -> Path:
     return resolved
 
 
-def _model_setting() -> str:
+def _model_setting(cwd: Path) -> Path:
     value = os.environ.get("PROJECTLORE_MODEL")
-    if not value:
-        raise ValueError("PROJECTLORE_MODEL is required.")
-    return value
+    if value:
+        return _confined_path(cwd, value)
+    return discover_model(cwd)
 
 
 def _required_string(value: dict[str, Any], key: str) -> str:

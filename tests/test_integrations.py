@@ -25,6 +25,15 @@ def test_capability_matrix_names_both_clients_and_degradation() -> None:
     assert "degradation" in matrix["equivalence"]
 
 
+def test_packaged_capability_matrix_matches_documentation(
+    tmp_path: Path,
+) -> None:
+    packaged = capability_matrix(tmp_path)
+    documented = capability_matrix(ROOT)
+
+    assert packaged == documented
+
+
 def test_managed_instruction_preview_preserves_user_content(tmp_path: Path) -> None:
     agents = tmp_path / "AGENTS.md"
     agents.write_text("# User instructions\n\nKeep this.\n", encoding="utf-8")
@@ -66,9 +75,7 @@ def test_doctor_proves_versions_mcp_identity_and_blocking_hook(
     assert result["healthy"] is True
     assert all(result["checks"].values())
     assert result["hook_probe"]["returncode"] == 2
-    trust_verified = all(
-        item["verified"] for item in result["trust"].values()
-    )
+    trust_verified = all(item["verified"] for item in result["trust"].values())
     expected_state = (
         "configured_executable_trust_verified"
         if trust_verified

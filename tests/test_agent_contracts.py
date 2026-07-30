@@ -4,6 +4,8 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from projectlore.compiler import compile_model
 from projectlore.mcp_server import create_server
 from projectlore.models import Term
@@ -36,12 +38,8 @@ def test_term_resolution_reports_ambiguity() -> None:
     service = ModelService(MODEL)
     concepts = list(service.model.concepts)
     alias = Term(value="shared name")
-    concepts[0] = concepts[0].model_copy(
-        update={"terms": [*concepts[0].terms, alias]}
-    )
-    concepts[1] = concepts[1].model_copy(
-        update={"terms": [*concepts[1].terms, alias]}
-    )
+    concepts[0] = concepts[0].model_copy(update={"terms": [*concepts[0].terms, alias]})
+    concepts[1] = concepts[1].model_copy(update={"terms": [*concepts[1].terms, alias]})
     model = service.model.model_copy(update={"concepts": concepts})
 
     result = QueryService(compile_model(model)).resolve_term("shared name")
@@ -102,13 +100,9 @@ def test_mcp_exposes_complete_read_only_contract_and_timeout_state() -> None:
     server = create_server(MODEL, TimeoutScopeAuthority())
     cases = {
         "model_search": {"query": "calibration"},
-        "model_get_concept": {
-            "concept_id": "lore:homebrew/calibration-evidence"
-        },
+        "model_get_concept": {"concept_id": "lore:homebrew/calibration-evidence"},
         "model_resolve_term": {"term": "Calibration evidence"},
-        "model_get_relationships": {
-            "concept_id": "lore:homebrew/calibration-evidence"
-        },
+        "model_get_relationships": {"concept_id": "lore:homebrew/calibration-evidence"},
         "model_validate": {},
     }
     for tool, arguments in cases.items():
@@ -127,6 +121,27 @@ def test_mcp_exposes_complete_read_only_contract_and_timeout_state() -> None:
     assert timeout[1]["findings"][0]["outcome"] == "dependency_timeout"
 
 
+def test_mcp_reads_start_without_fraimed_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("FRAIMED_API_TOKEN", raising=False)
+    server = create_server(MODEL)
+
+    status = asyncio.run(server.call_tool("model_status", {}))
+    assert isinstance(status, tuple)
+    assert status[1]["result_state"] == "complete"
+
+    policy = asyncio.run(
+        server.call_tool(
+            "policy_check",
+            {"facts": {}, "frame_id": "frame", "space_id": "space"},
+        )
+    )
+    assert isinstance(policy, tuple)
+    assert policy[1]["decision"] == "indeterminate"
+    assert policy[1]["findings"][0]["outcome"] == "dependency_unavailable"
+
+
 def _scope(observed_at: datetime) -> ScopeSnapshot:
     return ScopeSnapshot(
         authority="fraimed",
@@ -140,7 +155,5 @@ def _scope(observed_at: datetime) -> ScopeSnapshot:
 
 
 class TimeoutScopeAuthority:
-    async def current_scope(
-        self, frame_id: str, space_id: str
-    ) -> ScopeSnapshot:
+    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
         raise TimeoutError
