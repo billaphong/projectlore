@@ -1,0 +1,117 @@
+{
+  "evaluation_id": "homebrew-forecast-trust-v1-after",
+  "run_at": "2026-07-30T02:59:31.468479+00:00",
+  "corpus": "C:\\Projects\\projectlore\\evaluations\\homebrew-forecast-trust\\corpus.yaml",
+  "model": "C:\\Projects\\projectlore\\examples\\homebrew.forecast-trust.project.yaml",
+  "scope_authority_ref": "fraimed://frame/019fb0b0-2e3d-720a-858f-10444184fe59",
+  "measurements": {
+    "retrieval_success": {
+      "successful": 6,
+      "total": 6
+    },
+    "provenance_correctness": {
+      "correct": 6,
+      "total": 6
+    },
+    "policy_catch_rate": {
+      "caught": 3,
+      "violations": 3
+    },
+    "policy_false_positive_rate": {
+      "false_positives": 0,
+      "compliant_cases": 3
+    },
+    "correction_rediscovery": {
+      "rediscovered": 3,
+      "total": 3
+    },
+    "latency_ms": {
+      "p50": 0.0398,
+      "p95": 0.108
+    },
+    "context_size_bytes": {
+      "p50": 3248.5,
+      "p95": 3254.0
+    }
+  },
+  "thresholds": {
+    "retrieval_success": "6/6",
+    "provenance_correctness": "6/6",
+    "policy_catch_rate": "3/3",
+    "policy_false_positives": "0/3",
+    "correction_rediscovery": "3/3",
+    "latency_p95_ms_max": 100,
+    "context_size_p95_bytes_max": 16384
+  },
+  "question_results": [
+    {
+      "id": "q1",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q2",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q3",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q4",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q5",
+      "rules_ok": true,
+      "sources_ok": true
+    },
+    {
+      "id": "q6",
+      "rules_ok": true,
+      "sources_ok": true
+    }
+  ],
+  "policy_results": [
+    {
+      "id": "p1-calibration-violation",
+      "decision": "fail",
+      "outcome": "reject_snapshot",
+      "outcome_ok": true
+    },
+    {
+      "id": "p2-calibration-compliant",
+      "decision": "pass",
+      "outcome": "no_finding",
+      "outcome_ok": true
+    },
+    {
+      "id": "p3-future-issue-violation",
+      "decision": "fail",
+      "outcome": "reject_snapshot",
+      "outcome_ok": true
+    },
+    {
+      "id": "p4-future-issue-compliant",
+      "decision": "pass",
+      "outcome": "no_finding",
+      "outcome_ok": true
+    },
+    {
+      "id": "p5-horizon-violation",
+      "decision": "fail",
+      "outcome": "input_untrusted",
+      "outcome_ok": true
+    },
+    {
+      "id": "p6-horizon-compliant",
+      "decision": "pass",
+      "outcome": "no_finding",
+      "outcome_ok": true
+    }
+  ],
+  "passed": true
+}
