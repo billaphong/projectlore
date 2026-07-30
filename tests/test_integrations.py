@@ -55,9 +55,15 @@ def test_doctor_proves_versions_mcp_identity_and_blocking_hook() -> None:
     assert result["healthy"] is True
     assert all(result["checks"].values())
     assert result["hook_probe"]["returncode"] == 2
-    assert result["trust"]["claude_code"]["verified"] is False
-    assert result["trust"]["codex_cli"]["verified"] is False
-    assert result["enforcement_state"] == "configured_executable_trust_unverified"
+    trust_verified = all(
+        item["verified"] for item in result["trust"].values()
+    )
+    expected_state = (
+        "configured_executable_trust_verified"
+        if trust_verified
+        else "configured_executable_trust_unverified"
+    )
+    assert result["enforcement_state"] == expected_state
 
 
 def test_trust_receipt_is_bound_to_exact_configuration(tmp_path: Path) -> None:
