@@ -2,7 +2,7 @@
   "mcpServers": {
     "projectlore": {
       "type": "stdio",
-      "command": "python",
+      "command": "${PROJECTLORE_PYTHON:-.venv/Scripts/python.exe}",
       "args": [
         "-I",
         "-m",
