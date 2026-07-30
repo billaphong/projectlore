@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -71,7 +72,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run a frozen pilot corpus once and retain its evidence.",
     )
     evaluate.add_argument("corpus", type=Path)
-    evaluate.add_argument("scope", type=Path)
+    evaluate.add_argument("frame_id")
+    evaluate.add_argument("space_id")
     evaluate.add_argument("output", type=Path)
     return parser
 
@@ -167,7 +169,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "evaluate":
         try:
-            result = evaluate_once(args.corpus, args.scope, args.output)
+            result = asyncio.run(
+                evaluate_once(
+                    args.corpus,
+                    args.frame_id,
+                    args.space_id,
+                    args.output,
+                )
+            )
         except (FileExistsError, FileNotFoundError, OSError, ValueError) as error:
             parser.error(str(error))
         print(json.dumps(result, indent=2))

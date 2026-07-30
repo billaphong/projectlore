@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import statistics
 import tempfile
@@ -13,15 +14,17 @@ from typing import Any
 
 import yaml
 
+from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
 from projectlore.policy import PolicyRequest, policy_check
-from projectlore.scope import ScopeSnapshot
 from projectlore.service import ModelService
 
 
-def evaluate_once(
+async def evaluate_once(
     corpus_path: Path,
-    scope_path: Path,
+    frame_id: str,
+    space_id: str,
     output_path: Path,
+    scope_authority: ScopeAuthority | None = None,
 ) -> dict[str, Any]:
     if output_path.exists():
         raise FileExistsError(
@@ -30,7 +33,14 @@ def evaluate_once(
     corpus = yaml.safe_load(corpus_path.read_text(encoding="utf-8"))
     project_root = corpus_path.resolve().parents[2]
     model_path = project_root / corpus["model"]
-    scope = ScopeSnapshot.model_validate_json(scope_path.read_text(encoding="utf-8"))
+    authority = scope_authority or FraimedScopeAuthority(
+        os.environ.get(
+            "PROJECTLORE_FRAIMED_MCP_URL",
+            "https://www.fraimed.ai/api/mcp",
+        ),
+        os.environ.get("FRAIMED_API_TOKEN", ""),
+    )
+    scope = await authority.current_scope(frame_id, space_id)
 
     service = ModelService(model_path)
     retrieval_success = 0
@@ -61,6 +71,7 @@ def evaluate_once(
         result = policy_check(
             service,
             PolicyRequest(facts=case["facts"], scope=scope),
+            scope_obtained_via="fraimed_mcp",
         )
         latencies.append((time.perf_counter_ns() - started) / 1_000_000)
         finding = result["findings"][0]
