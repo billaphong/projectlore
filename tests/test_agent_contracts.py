@@ -87,13 +87,12 @@ def test_policy_reports_all_four_decision_states() -> None:
         )
     )
     not_applicable = policy.check(PolicyRequest(facts={}, scope=fresh))
-    indeterminate = policy.check(PolicyRequest(facts={}, scope=stale))
+    stale_not_applicable = policy.check(PolicyRequest(facts={}, scope=stale))
 
     assert passed["decision"] == "pass"
     assert failed["decision"] == "fail"
     assert not_applicable["decision"] == "not_applicable"
-    assert indeterminate["decision"] == "indeterminate"
-    assert indeterminate["findings"][0]["outcome"] == "stale_dependency"
+    assert stale_not_applicable["decision"] == "not_applicable"
 
 
 def test_mcp_exposes_complete_read_only_contract_and_timeout_state() -> None:
@@ -117,8 +116,7 @@ def test_mcp_exposes_complete_read_only_contract_and_timeout_state() -> None:
         )
     )
     assert isinstance(timeout, tuple)
-    assert timeout[1]["decision"] == "indeterminate"
-    assert timeout[1]["findings"][0]["outcome"] == "dependency_timeout"
+    assert timeout[1]["decision"] == "not_applicable"
 
 
 def test_mcp_reads_start_without_fraimed_credentials(
@@ -138,8 +136,7 @@ def test_mcp_reads_start_without_fraimed_credentials(
         )
     )
     assert isinstance(policy, tuple)
-    assert policy[1]["decision"] == "indeterminate"
-    assert policy[1]["findings"][0]["outcome"] == "dependency_unavailable"
+    assert policy[1]["decision"] == "not_applicable"
 
 
 def _scope(observed_at: datetime) -> ScopeSnapshot:

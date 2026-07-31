@@ -1,0 +1,16 @@
+{
+  "receipt_version": "scope-receipt/0.1.0",
+  "authority": "fraimed",
+  "frame_id": "frame-123",
+  "authority_ref": "https://www.fraimed.ai/frames/frame-123",
+  "observed_at": "2026-07-31T12:00:00Z",
+  "evaluated_at": "2026-07-31T12:00:30Z",
+  "age_seconds": 30.0,
+  "scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "fresh": true,
+  "claim": "scope_observed",
+  "obtained_via": "fraimed_mcp",
+  "confirmed_scope_version": 7,
+  "closure_generation": 3,
+  "maximum_age_seconds": 300
+}

@@ -1,6 +1,7 @@
 # ProjectLore product research and hardened plan
 
-Status: proposed plan of record, pending owner acceptance  
+Status: accepted plan of record (v2); implementation audited through public-alpha
+release-candidate preparation
 Research date: 2026-07-29
 
 ## Executive decision

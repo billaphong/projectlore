@@ -1,0 +1,13 @@
+{
+  "decision": "pass",
+  "findings": [
+    {
+      "rule_id": "lore:sienna/rule/authoritative-command-boundary",
+      "decision": "pass",
+      "outcome": "no_finding",
+      "message": "Rule satisfied.",
+      "source_refs": []
+    }
+  ],
+  "scope_receipt": null
+}

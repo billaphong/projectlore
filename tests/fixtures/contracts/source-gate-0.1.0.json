@@ -1,0 +1,14 @@
+{
+  "evidence_version": "projectlore-source-gate/0.1.0",
+  "evidence_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "model_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "assurance_scope": "local_advisory",
+  "repository_certified": false,
+  "checked_files": [],
+  "facts": {},
+  "policy_decision": "not_applicable",
+  "decision": "indeterminate",
+  "findings": [],
+  "provenance": [],
+  "scope_receipt": null
+}

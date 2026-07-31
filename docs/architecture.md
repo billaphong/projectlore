@@ -57,12 +57,20 @@ remain distinguishable from asserted project knowledge.
 - **ProjectLore:** domain meaning, terminology, Rules, provenance, and stable
   external references.
 - **CodeGraph:** code symbols, calls, imports, inheritance, and dependencies.
-- **Fraimed:** live scope, Decisions, Validation, attempts, and Outcomes.
+- **Workflow providers:** optional current authorization context. The built-in
+  local provider requires no account or network; Fraimed is one external adapter
+  for live Decisions, Validation, attempts, and Outcomes.
 - **Git:** authoritative ProjectLore model files, source code, and review history.
 
 Integrations join these systems through stable references. They must not copy
 another system's entire state into the canonical model. These ownership
 boundaries cannot be demoted by project configuration.
+
+ProjectLore core never requires a workflow provider. Policy bindings declare
+`scope_requirement: none` (the default) or `workflow`. Timeless rules run
+offline with no scope receipt. Only an applicable workflow-scoped rule becomes
+indeterminate when current context is missing or stale. This keeps provider
+failure localized instead of disabling project knowledge or unrelated policy.
 
 ### CodeGraph composition
 

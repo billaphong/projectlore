@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
 
 import httpx
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 from projectlore.scope import ScopeSnapshot
+from projectlore.workflow import WorkflowScopeProvider
 
-
-class ScopeAuthority(Protocol):
-    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot: ...
+ScopeAuthority = WorkflowScopeProvider
 
 
 class FraimedScopeAuthority:
@@ -27,26 +25,35 @@ class FraimedScopeAuthority:
         self._token = token
         self._timeout_seconds = timeout_seconds
 
-    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
+    async def current_scope(
+        self, frame_id: str, space_id: str | None = None
+    ) -> ScopeSnapshot:
+        if space_id is None:
+            raise ValueError("Fraimed workflow scope requires a Space ID.")
         headers = {"Authorization": f"Bearer {self._token}"}
         timeout = httpx.Timeout(self._timeout_seconds)
-        async with (
-            httpx.AsyncClient(headers=headers, timeout=timeout) as client,
-            streamable_http_client(
-                self._url,
-                http_client=client,
-            ) as (read_stream, write_stream, _),
-            ClientSession(
-                read_stream,
-                write_stream,
-                read_timeout_seconds=timedelta(seconds=self._timeout_seconds),
-            ) as session,
-        ):
-            await session.initialize()
-            result = await session.call_tool(
-                "get_frame_context",
-                {"frameId": frame_id, "spaceId": space_id, "brief": True},
-            )
+        try:
+            async with (
+                httpx.AsyncClient(headers=headers, timeout=timeout) as client,
+                streamable_http_client(
+                    self._url,
+                    http_client=client,
+                ) as (read_stream, write_stream, _),
+                ClientSession(
+                    read_stream,
+                    write_stream,
+                    read_timeout_seconds=timedelta(
+                        seconds=self._timeout_seconds
+                    ),
+                ) as session,
+            ):
+                await session.initialize()
+                result = await session.call_tool(
+                    "get_frame_context",
+                    {"frameId": frame_id, "spaceId": space_id, "brief": True},
+                )
+        except Exception as error:
+            raise RuntimeError("Fraimed scope lookup failed.") from error
         if result.isError:
             raise RuntimeError("Fraimed rejected the scope lookup.")
         documents = []

@@ -23,7 +23,22 @@ from projectlore.onboarding import (
 )
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.schema import render_json_schema, schema_matches
+from projectlore.scope_cache import (
+    configure_local_scope,
+    configure_scope_target,
+    load_scope_target,
+    refresh_scope_from_environment,
+)
 from projectlore.service import InvalidModelError, ModelService
+from projectlore.source_gate import (
+    evaluate_source_gate,
+    source_gate_exit_code,
+    write_source_gate_evidence,
+)
+from projectlore.source_policy import (
+    configured_source_paths,
+    load_scope_snapshot,
+)
 from projectlore.trust import issue_receipt, write_receipt
 from projectlore.validation import load_document, validate_path
 
@@ -135,6 +150,64 @@ def build_parser() -> argparse.ArgumentParser:
     trust.add_argument("client", choices=("claude_code", "codex_cli"))
     trust.add_argument("--client-version", required=True)
     trust.add_argument("--confirm-reviewed", action="store_true")
+
+    scope = subparsers.add_parser(
+        "scope",
+        help="Configure and refresh local Fraimed workflow scope.",
+    )
+    scope_subparsers = scope.add_subparsers(
+        dest="scope_command",
+        required=True,
+    )
+    scope_target = scope_subparsers.add_parser(
+        "target",
+        help="Set the non-secret local Fraimed Frame and Space target.",
+    )
+    scope_target.add_argument("frame_id")
+    scope_target.add_argument("space_id")
+    scope_target.add_argument("--root", type=Path, default=Path.cwd())
+    scope_refresh = scope_subparsers.add_parser(
+        "refresh",
+        help="Refresh the configured target through Fraimed MCP.",
+    )
+    scope_refresh.add_argument("--root", type=Path, default=Path.cwd())
+    scope_status = scope_subparsers.add_parser(
+        "status",
+        help="Inspect the configured target and local scope snapshot.",
+    )
+    scope_status.add_argument("--root", type=Path, default=Path.cwd())
+    scope_local = scope_subparsers.add_parser(
+        "local",
+        help="Set standalone local workflow context without a hosted provider.",
+    )
+    scope_local.add_argument("scope_id")
+    scope_local.add_argument("--title", required=True)
+    scope_local.add_argument("--status", default="in_progress")
+    scope_local.add_argument("--root", type=Path, default=Path.cwd())
+
+    source_gate = subparsers.add_parser(
+        "source-gate",
+        help="Evaluate configured checked-out source through policy.",
+    )
+    source_gate.add_argument("model", type=Path)
+    source_selection = source_gate.add_mutually_exclusive_group(required=True)
+    source_selection.add_argument(
+        "--changed-file",
+        action="append",
+        dest="changed_files",
+    )
+    source_selection.add_argument("--all-configured", action="store_true")
+    source_gate.add_argument(
+        "--assurance-scope",
+        choices=("local_advisory", "ci_job_result"),
+        default="local_advisory",
+    )
+    source_gate.add_argument(
+        "--output",
+        type=Path,
+        default=Path(".projectlore/evidence/source-gate.json"),
+    )
+    source_gate.add_argument("--root", type=Path, default=Path.cwd())
 
     serve = subparsers.add_parser(
         "serve",
@@ -315,6 +388,95 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         )
         return 0
+
+    if args.command == "scope":
+        root = args.root.resolve()
+        try:
+            if args.scope_command == "target":
+                path, target = configure_scope_target(
+                    root,
+                    frame_id=args.frame_id,
+                    space_id=args.space_id,
+                )
+                result = {
+                    "configured": True,
+                    "path": str(path),
+                    "target": target.model_dump(mode="json"),
+                    "credential_stored": False,
+                }
+            elif args.scope_command == "refresh":
+                path, snapshot = asyncio.run(
+                    refresh_scope_from_environment(root)
+                )
+                result = {
+                    "refreshed": True,
+                    "path": str(path),
+                    "scope": snapshot.model_dump(mode="json"),
+                }
+            elif args.scope_command == "local":
+                path, local_scope_snapshot = configure_local_scope(
+                    root,
+                    scope_id=args.scope_id,
+                    title=args.title,
+                    status=args.status,
+                )
+                result = {
+                    "configured": True,
+                    "path": str(path),
+                    "scope": local_scope_snapshot.model_dump(mode="json"),
+                    "network_required": False,
+                }
+            else:
+                scope_target = load_scope_target(root, required=False)
+                scope_error = None
+                try:
+                    status_scope_snapshot = load_scope_snapshot(root)
+                except ValueError as error:
+                    status_scope_snapshot = None
+                    scope_error = str(error)
+                result = {
+                    "target": (
+                        scope_target.model_dump(mode="json")
+                        if scope_target is not None
+                        else None
+                    ),
+                    "scope": (
+                        status_scope_snapshot.model_dump(mode="json")
+                        if status_scope_snapshot is not None
+                        else None
+                    ),
+                    "scope_error": scope_error,
+                }
+        except (OSError, RuntimeError, TimeoutError, ValueError) as error:
+            parser.error(str(error))
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "source-gate":
+        root = args.root.resolve()
+        try:
+            service = ModelService(args.model)
+            paths = (
+                configured_source_paths(root)
+                if args.all_configured
+                else tuple(args.changed_files or ())
+            )
+            gate_evidence = evaluate_source_gate(
+                root,
+                service,
+                paths,
+                assurance_scope=args.assurance_scope,
+            )
+            write_source_gate_evidence(args.output, gate_evidence)
+        except (
+            FileNotFoundError,
+            OSError,
+            ValueError,
+            InvalidModelError,
+        ) as error:
+            parser.error(str(error))
+        print(gate_evidence.model_dump_json(indent=2))
+        return source_gate_exit_code(gate_evidence)
 
     if args.command in {
         "model-status",

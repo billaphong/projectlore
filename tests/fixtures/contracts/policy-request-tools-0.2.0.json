@@ -1,0 +1,6 @@
+{
+  "facts": {
+    "mutation_path": "game_session_execute"
+  },
+  "scope": null
+}

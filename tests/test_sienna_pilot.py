@@ -114,7 +114,7 @@ def test_sienna_mcp_and_core_share_contract_model_and_policy_outcomes() -> None:
     assert status["contract_digest"] == context["contract_digest"]
     assert status["model_digest"] == context["model_digest"]
     assert policy["decision"] == "fail"
-    assert policy["scope_receipt"]["obtained_via"] == "fraimed_mcp"
+    assert policy["scope_receipt"] is None
 
 
 def test_sienna_pre_registered_evaluation_passes(tmp_path: Path) -> None:

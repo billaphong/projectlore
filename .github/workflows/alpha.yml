@@ -27,7 +27,7 @@ jobs:
       - name: Verify source
         run: |
           python -m pytest
-          python -m ruff check src tests
+          python -m ruff check src tests scripts
           python -m mypy src/projectlore
           python -m projectlore.cli schema schemas/projectlore.schema.json --check
       - name: Build and inspect distributions

@@ -33,3 +33,11 @@ carry their own literal version. Consumers must reject unsupported major version
 and tolerate documented additive fields within a compatible version.
 
 Every release records migrations and compatibility changes in `CHANGELOG.md`.
+
+## Workflow contracts
+
+Workflow scope, receipts, persisted targets, policy payloads, source-gate
+evidence, and lifecycle events are inventoried independently in
+[`workflow-contract-compatibility.md`](workflow-contract-compatibility.md).
+Legacy Fraimed-shaped payloads remain readable according to that matrix; a
+provider-neutral redesign must not reuse an unchanged version identifier.

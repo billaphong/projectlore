@@ -10,8 +10,16 @@ from pathlib import Path
 from typing import Any
 
 from projectlore.loader import discover_model
-from projectlore.policy import PolicyRequest, policy_check
+from projectlore.policy import (
+    PolicyRequest,
+    load_policy_registry,
+    policy_check,
+)
 from projectlore.service import ModelService
+from projectlore.source_policy import (
+    facts_from_tool_input,
+    load_scope_snapshot,
+)
 
 MAX_INPUT_BYTES = 65_536
 MAX_REQUEST_BYTES = 16_384
@@ -32,12 +40,24 @@ def main() -> int:
         if not isinstance(tool_input, dict):
             return 0
         candidate = _candidate_request(cwd, tool_input)
-        if candidate is None:
-            return 0
         model_path = _model_setting(cwd)
         service = ModelService(model_path)
-        request = PolicyRequest.model_validate_json(candidate)
-        result = policy_check(service, request)
+        if candidate is not None:
+            request = PolicyRequest.model_validate_json(candidate)
+        else:
+            facts = facts_from_tool_input(cwd, tool_input)
+            if facts is None:
+                return 0
+            request = PolicyRequest(
+                facts=facts,
+                scope=load_scope_snapshot(cwd, required=False),
+            )
+        result = policy_check(
+            service,
+            request,
+            registry=load_policy_registry(cwd),
+            scope_obtained_via="provided_snapshot",
+        )
     except (json.JSONDecodeError, OSError, ValueError) as error:
         return _block(f"ProjectLore policy input rejected: {error}")
     finally:
@@ -47,7 +67,13 @@ def main() -> int:
         outcomes = ", ".join(
             f"{item['rule_id']}={item['outcome']}" for item in result["findings"]
         )
-        return _block(f"ProjectLore blocked the action: {outcomes}")
+        source_ids = ", ".join(
+            item["id"]
+            for item in result["provenance"]
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        )
+        provenance = f"; provenance={source_ids}" if source_ids else ""
+        return _block(f"ProjectLore blocked the action: {outcomes}{provenance}")
     return 0
 
 

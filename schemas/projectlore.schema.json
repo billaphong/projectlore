@@ -732,7 +732,6 @@
           "type": "number"
         },
         "authority": {
-          "const": "fraimed",
           "title": "Authority",
           "type": "string"
         },
@@ -795,6 +794,7 @@
         "obtained_via": {
           "enum": [
             "fraimed_mcp",
+            "local_file",
             "provided_snapshot"
           ],
           "title": "Obtained Via",

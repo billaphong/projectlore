@@ -107,7 +107,7 @@ def test_mcp_tools_return_the_same_digests_as_the_core() -> None:
     policy = policy_result[1]
     assert policy["contract_digest"] == status["contract_digest"]
     assert policy["model_digest"] == status["model_digest"]
-    assert policy["scope_receipt"]["obtained_via"] == "fraimed_mcp"
+    assert policy["scope_receipt"] is None
 
 
 def test_policy_operations_do_not_modify_the_model() -> None:

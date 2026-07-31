@@ -48,6 +48,7 @@ dev = [
 lore = "projectlore.cli:main"
 projectlore-mcp = "projectlore.mcp_server:main"
 projectlore-hook = "projectlore.hook:main"
+projectlore-scope-hook = "projectlore.scope_hook:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/projectlore"]
@@ -64,7 +65,13 @@ include = [
   "/docs/compatibility.md",
   "/docs/extension-sdk.md",
   "/docs/getting-started.md",
+  "/docs/phase-audit.md",
+  "/docs/pilots/homebrew-forecast-trust.md",
+  "/docs/pilots/sienna-campaign-authority.md",
+  "/docs/product-research-and-plan.md",
   "/docs/release-policy.md",
+  "/docs/scale-and-refresh-decision.md",
+  "/docs/ui-decision.md",
   "/docs/versioning-and-migrations.md",
   "/examples/contracts/portable.valid.yaml",
   "/pyproject.toml",

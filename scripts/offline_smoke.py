@@ -138,6 +138,11 @@ def verify(dist: Path, example: Path, schema: Path) -> None:
         hook = scripts / (
             "projectlore-hook.exe" if os.name == "nt" else "projectlore-hook"
         )
+        scope_hook = scripts / (
+            "projectlore-scope-hook.exe"
+            if os.name == "nt"
+            else "projectlore-scope-hook"
+        )
         _run(
             [
                 str(python),
@@ -208,6 +213,11 @@ def verify(dist: Path, example: Path, schema: Path) -> None:
             cwd=project,
         )
         _run([str(lore), "validate", "projectlore.yaml"], cwd=project)
+        _run(
+            [str(scope_hook)],
+            cwd=project,
+            input_text=json.dumps({"cwd": str(project)}),
+        )
         _run(
             [
                 str(lore),

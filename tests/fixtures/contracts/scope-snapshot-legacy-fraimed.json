@@ -1,0 +1,11 @@
+{
+  "authority": "fraimed",
+  "frame_id": "frame-123",
+  "frame_title": "Ship ProjectLore",
+  "frame_status": "active",
+  "validation_open": 2,
+  "observed_at": "2026-07-31T12:00:00Z",
+  "authority_ref": "https://www.fraimed.ai/frames/frame-123",
+  "confirmed_scope_version": 7,
+  "closure_generation": 3
+}

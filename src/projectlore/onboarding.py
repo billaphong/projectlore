@@ -208,6 +208,19 @@ def _merge_hooks(value: dict[str, Any], *, client: str) -> dict[str, Any]:
     if desired not in entries:
         entries = [*entries, desired]
     hooks["PreToolUse"] = entries
+    session_entries = hooks.get("SessionStart", [])
+    if not isinstance(session_entries, list):
+        raise ValueError("hooks.SessionStart must be an array")
+    scope_command = {
+        "type": "command",
+        "command": "projectlore-scope-hook",
+        "timeout": 15,
+        "statusMessage": "Refreshing ProjectLore workflow scope",
+    }
+    scope_desired = {"hooks": [scope_command]}
+    if scope_desired not in session_entries:
+        session_entries = [*session_entries, scope_desired]
+    hooks["SessionStart"] = session_entries
     result["hooks"] = hooks
     return result
 

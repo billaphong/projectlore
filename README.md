@@ -12,10 +12,13 @@ ProjectLore is licensed under the [Apache License 2.0](LICENSE).
 
 ## Quick start
 
-ProjectLore requires Python 3.11 or newer. In a new Git repository:
+ProjectLore requires Python 3.11 or newer. `0.1.0a2` is currently an
+unpublished release candidate. Install the wheel downloaded from the successful
+CI run (or built locally from this exact checkout), then initialize a new Git
+repository:
 
 ```shell
-python -m pip install projectlore==0.1.0a2
+python -m pip install ./projectlore-0.1.0a2-py3-none-any.whl
 lore init --name "My Project"
 # Review the complete preview, then:
 lore init --name "My Project" --apply
@@ -27,6 +30,17 @@ Review and approve the generated project MCP and hook files in Claude Code and
 Codex before running `lore doctor projectlore.yaml`. ProjectLore never bypasses
 client-owned trust. See the complete [getting-started guide](docs/getting-started.md)
 for configuration review, expected degradation, troubleshooting, and removal.
+The package-index command
+`python -m pip install projectlore==0.1.0a2` becomes valid only after the owner
+separately authorizes and completes publication.
+
+ProjectLore works without Fraimed or any hosted workflow service. Deterministic
+rules default to standalone evaluation. Optional local workflow context can be
+set with `lore scope local`; an explicit `lore scope target FRAME_ID SPACE_ID`
+instead enables the Fraimed adapter. Generated SessionStart hooks refresh only
+that configured external target. Configured checked-out source can be evaluated with
+`lore source-gate projectlore.yaml --all-configured`; its local or CI evidence
+never claims repository certification.
 
 ## Vocabulary
 

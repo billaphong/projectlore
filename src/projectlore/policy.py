@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
+from pydantic.dataclasses import dataclass
 
 from projectlore.compiler import ProjectModel
 from projectlore.query import QueryService
@@ -14,6 +16,8 @@ from projectlore.scope import ScopeReceipt, ScopeSnapshot, issue_scope_receipt
 from projectlore.service import ModelService
 
 PolicyDecision = Literal["pass", "fail", "not_applicable", "indeterminate"]
+POLICY_REGISTRY_PATH = Path(".projectlore/policy-bindings.json")
+MAX_POLICY_REGISTRY_BYTES = 64 * 1024
 
 CALIBRATION_RULE = "lore:homebrew/rule/calibration-predates-forecast"
 ISSUE_RULE = "lore:homebrew/rule/forecast-issued-by-snapshot"
@@ -22,7 +26,7 @@ SIENNA_COMMAND_RULE = "lore:sienna/rule/authoritative-command-boundary"
 SIENNA_REPLAY_RULE = "lore:sienna/rule/deterministic-replay"
 
 
-@dataclass(frozen=True)
+@dataclass(config=ConfigDict(extra="forbid", strict=True), frozen=True)
 class PolicyBinding:
     """Trusted runtime semantics; canonical model text cannot make code executable."""
 
@@ -31,9 +35,10 @@ class PolicyBinding:
     relation: Literal["lte", "equal"]
     right_fact: str | None
     right_literal: str | None
-    value_type: Literal["datetime", "string"]
+    value_type: Literal["datetime", "decimal", "string"]
     failure_outcome: str
     failure_message: str
+    scope_requirement: Literal["none", "workflow"] = "none"
 
     def __post_init__(self) -> None:
         if (self.right_fact is None) == (self.right_literal is None):
@@ -111,12 +116,31 @@ DEFAULT_POLICY_REGISTRY = PolicyRegistry(
     )
 )
 
+_BINDING_ADAPTER = TypeAdapter(tuple[PolicyBinding, ...])
+
+
+def load_policy_registry(root: Path) -> PolicyRegistry:
+    """Load bounded operator-owned declarative bindings, if configured."""
+    path = (root.resolve() / POLICY_REGISTRY_PATH).resolve()
+    if not path.is_relative_to(root.resolve()):
+        raise ValueError("Policy registry path escapes the project root.")
+    if not path.is_file():
+        return DEFAULT_POLICY_REGISTRY
+    raw = path.read_bytes()
+    if len(raw) > MAX_POLICY_REGISTRY_BYTES:
+        raise ValueError("Policy registry exceeds 64 KiB.")
+    try:
+        bindings = _BINDING_ADAPTER.validate_json(raw, strict=True)
+    except ValidationError as error:
+        raise ValueError(f"Policy registry is invalid: {error}") from error
+    return PolicyRegistry((*DEFAULT_POLICY_REGISTRY.bindings, *bindings))
+
 
 class PolicyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     facts: dict[str, str]
-    scope: ScopeSnapshot
+    scope: ScopeSnapshot | None = None
 
 
 class Finding(BaseModel):
@@ -134,7 +158,7 @@ class PolicyResult(BaseModel):
 
     decision: PolicyDecision
     findings: list[Finding]
-    scope_receipt: ScopeReceipt
+    scope_receipt: ScopeReceipt | None
 
 
 class PolicyService:
@@ -154,14 +178,41 @@ class PolicyService:
         request: PolicyRequest,
         *,
         scope_obtained_via: Literal[
-            "fraimed_mcp", "provided_snapshot"
+            "fraimed_mcp", "local_file", "provided_snapshot"
         ] = "provided_snapshot",
     ) -> dict[str, Any]:
-        receipt = issue_scope_receipt(
-            request.scope,
-            obtained_via=scope_obtained_via,
+        applicable_bindings = _applicable_bindings(
+            request.facts, self._registry
         )
-        if not receipt.fresh:
+        workflow_required = any(
+            binding.scope_requirement == "workflow"
+            for binding in applicable_bindings
+        )
+        receipt = (
+            issue_scope_receipt(
+                request.scope,
+                obtained_via=scope_obtained_via,
+            )
+            if request.scope is not None
+            else None
+        )
+        if workflow_required and receipt is None:
+            finding = Finding(
+                rule_id="projectlore:workflow/current-scope",
+                decision="indeterminate",
+                outcome="dependency_unavailable",
+                message="This policy requires current workflow scope.",
+                source_refs=[],
+            )
+            return self._query.envelope(
+                PolicyResult(
+                    decision="indeterminate",
+                    findings=[finding],
+                    scope_receipt=None,
+                ).model_dump(mode="json"),
+                result_state="complete",
+            )
+        if workflow_required and receipt is not None and not receipt.fresh:
             finding = Finding(
                 rule_id="projectlore:workflow/current-scope",
                 decision="indeterminate",
@@ -214,11 +265,12 @@ def policy_check(
     service: ModelService,
     request: PolicyRequest,
     *,
+    registry: PolicyRegistry = DEFAULT_POLICY_REGISTRY,
     scope_obtained_via: Literal[
-        "fraimed_mcp", "provided_snapshot"
+        "fraimed_mcp", "local_file", "provided_snapshot"
     ] = "provided_snapshot",
 ) -> dict[str, Any]:
-    return PolicyService(service.project).check(
+    return PolicyService(service.project, registry).check(
         request,
         scope_obtained_via=scope_obtained_via,
     )
@@ -233,6 +285,21 @@ def _findings(
         _evaluate_binding(facts, rules, binding)
         for binding in registry.bindings
     ]
+
+
+def _applicable_bindings(
+    facts: dict[str, str],
+    registry: PolicyRegistry,
+) -> tuple[PolicyBinding, ...]:
+    return tuple(
+        binding
+        for binding in registry.bindings
+        if binding.left_fact in facts
+        and (
+            binding.right_fact is None
+            or binding.right_fact in facts
+        )
+    )
 
 
 def _evaluate_binding(
@@ -282,6 +349,31 @@ def _evaluate_binding(
             left_time <= right_time
             if binding.relation == "lte"
             else left_time == right_time
+        )
+    elif binding.value_type == "decimal":
+        try:
+            left_decimal = Decimal(left_value)
+            right_decimal = Decimal(right_value)
+        except InvalidOperation:
+            return Finding(
+                rule_id=binding.rule_id,
+                decision="indeterminate",
+                outcome="invalid_fact",
+                message="Policy decimal facts must be finite decimal values.",
+                source_refs=sources,
+            )
+        if not left_decimal.is_finite() or not right_decimal.is_finite():
+            return Finding(
+                rule_id=binding.rule_id,
+                decision="indeterminate",
+                outcome="invalid_fact",
+                message="Policy decimal facts must be finite decimal values.",
+                source_refs=sources,
+            )
+        satisfied = (
+            left_decimal <= right_decimal
+            if binding.relation == "lte"
+            else left_decimal == right_decimal
         )
     else:
         satisfied = (

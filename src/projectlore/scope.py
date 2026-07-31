@@ -13,20 +13,25 @@ from projectlore.models import StrictModel
 
 
 class ScopeSnapshot(StrictModel):
-    authority: Literal["fraimed"]
+    authority: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
     frame_id: str = Field(min_length=1)
     frame_title: str = Field(min_length=1)
     frame_status: str = Field(min_length=1)
     validation_open: int = Field(ge=0)
     observed_at: datetime = Field(strict=False)
-    authority_ref: str = Field(pattern=r"^fraimed://frame/")
+    authority_ref: str = Field(pattern=r"^[a-z][a-z0-9+.-]*://")
     confirmed_scope_version: int | None = Field(default=None, ge=1)
     closure_generation: int | None = Field(default=None, ge=0)
+
+    @property
+    def scope_id(self) -> str:
+        """Provider-neutral identity; frame_id remains for v0.1 compatibility."""
+        return self.frame_id
 
 
 class ScopeReceipt(StrictModel):
     receipt_version: Literal["scope-receipt/0.1.0"]
-    authority: Literal["fraimed"]
+    authority: str
     frame_id: str
     authority_ref: str
     observed_at: datetime
@@ -35,7 +40,7 @@ class ScopeReceipt(StrictModel):
     scope_digest: str = Field(pattern=r"^sha256:")
     fresh: bool
     claim: Literal["scope_observed"]
-    obtained_via: Literal["fraimed_mcp", "provided_snapshot"]
+    obtained_via: Literal["fraimed_mcp", "local_file", "provided_snapshot"]
     confirmed_scope_version: int | None = None
     closure_generation: int | None = None
     maximum_age_seconds: int = Field(ge=1)
@@ -45,19 +50,21 @@ def issue_scope_receipt(
     *,
     now: datetime | None = None,
     maximum_age_seconds: int = 300,
-    obtained_via: Literal["fraimed_mcp", "provided_snapshot"] = "provided_snapshot",
+    obtained_via: Literal[
+        "fraimed_mcp", "local_file", "provided_snapshot"
+    ] = "provided_snapshot",
 ) -> ScopeReceipt:
     evaluated_at = now or datetime.now(UTC)
     observed_at = snapshot.observed_at
     if observed_at.tzinfo is None:
-        raise ValueError("Fraimed scope observed_at must include a timezone.")
+        raise ValueError("Workflow scope observed_at must include a timezone.")
     age = (evaluated_at - observed_at.astimezone(UTC)).total_seconds()
     fresh = 0 <= age <= maximum_age_seconds
     content: dict[str, Any] = snapshot.model_dump(mode="json")
     encoded = json.dumps(content, sort_keys=True, separators=(",", ":")).encode()
     return ScopeReceipt(
         receipt_version="scope-receipt/0.1.0",
-        authority="fraimed",
+        authority=snapshot.authority,
         frame_id=snapshot.frame_id,
         authority_ref=snapshot.authority_ref,
         observed_at=observed_at,

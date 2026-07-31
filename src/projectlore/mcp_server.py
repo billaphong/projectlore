@@ -9,7 +9,7 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
-from projectlore.policy import PolicyRequest
+from projectlore.policy import PolicyRequest, load_policy_registry
 from projectlore.policy import policy_check as evaluate_policy
 from projectlore.query import QueryService
 from projectlore.refresh import RefreshingModelService
@@ -38,6 +38,11 @@ def create_server(
         instructions="Read-only project meaning and deterministic policy tools.",
     )
     models = RefreshingModelService(model_path)
+    project_root = (
+        model_path.resolve().parent.parent
+        if model_path.resolve().parent.name == ".projectlore"
+        else model_path.resolve().parent
+    )
 
     @server.tool(name="model_status", structured_output=True)
     def model_status() -> dict[str, Any]:
@@ -99,30 +104,27 @@ def create_server(
     @server.tool(name="policy_check", structured_output=True)
     async def policy_check(
         facts: dict[str, str],
-        frame_id: str,
-        space_id: str,
+        frame_id: str | None = None,
+        space_id: str | None = None,
     ) -> dict[str, Any]:
         snapshot = models.refresh()
         service = snapshot.service
-        if authority is None:
-            result = QueryService(service.project).envelope(
-                {
-                    "decision": "indeterminate",
-                    "findings": [
-                        {
-                            "rule_id": "projectlore:workflow/current-scope",
-                            "decision": "indeterminate",
-                            "outcome": "dependency_unavailable",
-                            "message": (
-                                "Fraimed scope credentials are not configured."
-                            ),
-                            "source_refs": [],
-                        }
-                    ],
-                    "scope_receipt": None,
-                }
-            )
-            return snapshot.decorate(result)
+        registry = load_policy_registry(project_root)
+        without_scope = evaluate_policy(
+            service,
+            PolicyRequest(facts=facts),
+            registry=registry,
+        )
+        findings = without_scope.get("findings", [])
+        needs_workflow = any(
+            isinstance(item, dict)
+            and item.get("outcome") == "dependency_unavailable"
+            for item in findings
+        )
+        if not needs_workflow:
+            return snapshot.decorate(without_scope)
+        if authority is None or frame_id is None:
+            return snapshot.decorate(without_scope)
         try:
             scope = await authority.current_scope(frame_id, space_id)
         except TimeoutError:
@@ -145,6 +147,7 @@ def create_server(
         result = evaluate_policy(
             service,
             PolicyRequest(facts=facts, scope=scope),
+            registry=registry,
             scope_obtained_via="fraimed_mcp",
         )
         return snapshot.decorate(result)

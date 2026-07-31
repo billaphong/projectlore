@@ -21,6 +21,17 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Resolve authorized release manifest and tag target
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          test -f ".github/releases/${RELEASE_TAG}.json"
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          echo "TAG_COMMIT=$(git rev-list -n 1 "${RELEASE_TAG}")" >> "$GITHUB_ENV"
       - name: Download immutable GitHub release artifacts
         env:
           GH_TOKEN: ${{ github.token }}
@@ -32,11 +43,14 @@ jobs:
             --dir dist \
             --pattern "projectlore-*.whl" \
             --pattern "projectlore-*.tar.gz"
-      - name: Verify v0.1.0a1 artifact hashes
-        if: inputs.tag == 'v0.1.0a1'
-        working-directory: dist
+      - name: Verify tag, commit, version, filenames, and hashes
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          echo "58fefc8f61fa2923e381a99afbb77bb71b0a3b12c38d43f72c25a6d392799629  projectlore-0.1.0a1-py3-none-any.whl" | sha256sum --check
-          echo "71d4def68fd8d73e53ff6032b3e26cc37f2c9b610066a025aae73627704080cc  projectlore-0.1.0a1.tar.gz" | sha256sum --check
+          python scripts/verify_release.py \
+            ".github/releases/${RELEASE_TAG}.json" \
+            dist \
+            --tag "${RELEASE_TAG}" \
+            --tag-commit "${TAG_COMMIT}"
       - name: Publish identical artifacts to PyPI
         uses: pypa/gh-action-pypi-publish@v1.14.2

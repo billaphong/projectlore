@@ -7,12 +7,16 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
+dist-cleanup/
 dist-alpha/
 dist-release-*/
 *.egg-info/
 
-# Local state and generated indexes
-.projectlore/
+# Local state and generated indexes. Declarative policy configuration is the
+# reviewable exception; scope snapshots, receipts, caches, and indexes stay local.
+.projectlore/*
+!.projectlore/policy-bindings.json
+!.projectlore/source-policy-bindings.json
 
 # Editors and operating systems
 .idea/
