@@ -26,7 +26,6 @@ from projectlore.onboarding import (
 from projectlore.policy import PolicyRequest, load_policy_registry, policy_check
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.scope_cache import (
-    configure_scope_target,
     load_scope_target,
     refresh_scope_from_environment,
 )
@@ -42,7 +41,7 @@ from projectlore.source_policy import (
 )
 from projectlore.trust import issue_receipt, write_receipt
 from projectlore.validation import load_document, validate_path
-from projectlore.workflow import WorkflowTarget
+from projectlore.workflow import DeclaredWorkflowContext, WorkflowTarget
 from projectlore.workflow_state import (
     apply_clear,
     apply_legacy_local_migration,
@@ -51,6 +50,10 @@ from projectlore.workflow_state import (
     preview_clear,
     preview_legacy_local_migration,
     preview_local_declaration,
+)
+from projectlore.workflow_target import (
+    configure_workflow_target,
+    load_workflow_target,
 )
 
 
@@ -164,7 +167,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     scope = subparsers.add_parser(
         "scope",
-        help="Configure and refresh local Fraimed workflow scope.",
+        help="Manage provider-neutral workflow context.",
     )
     scope_subparsers = scope.add_subparsers(
         dest="scope_command",
@@ -172,14 +175,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     scope_target = scope_subparsers.add_parser(
         "target",
-        help="Set the non-secret local Fraimed Frame and Space target.",
+        help="Configure an explicit external workflow target.",
     )
-    scope_target.add_argument("frame_id")
-    scope_target.add_argument("space_id")
+    scope_target.add_argument("scope_id")
+    scope_target.add_argument("container_id")
+    scope_target.add_argument("--provider", required=True, choices=("fraimed",))
+    scope_target.add_argument("--apply", action="store_true")
     scope_target.add_argument("--root", type=Path, default=Path.cwd())
     scope_refresh = scope_subparsers.add_parser(
         "refresh",
-        help="Refresh the configured target through Fraimed MCP.",
+        help="Refresh the explicitly configured external target.",
     )
     scope_refresh.add_argument("--root", type=Path, default=Path.cwd())
     scope_status = scope_subparsers.add_parser(
@@ -246,9 +251,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run a frozen pilot corpus once and retain its evidence.",
     )
     evaluate.add_argument("corpus", type=Path)
-    evaluate.add_argument("frame_id")
-    evaluate.add_argument("space_id")
     evaluate.add_argument("output", type=Path)
+    evaluate.add_argument("--provider", choices=("fraimed",))
+    evaluate.add_argument("--scope-id")
+    evaluate.add_argument("--container-id")
     return parser
 
 
@@ -419,15 +425,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         root = args.root.resolve()
         try:
             if args.scope_command == "target":
-                path, target = configure_scope_target(
-                    root,
-                    frame_id=args.frame_id,
-                    space_id=args.space_id,
+                model_path = discover_model(root)
+                service = ModelService(model_path)
+                workflow_target = WorkflowTarget(
+                    target_version="projectlore-workflow-target/1.0.0",
+                    project_id=service.model.id,
+                    model_entrypoint=model_path.relative_to(root).as_posix(),
+                    provider_id=args.provider,
+                    scope_id=args.scope_id,
+                    container_id=args.container_id,
                 )
+                try:
+                    current_context = load_workflow_context(root)
+                except ValueError:
+                    current_context = None
+                if isinstance(current_context, DeclaredWorkflowContext):
+                    raise ValueError(
+                        "Clear the current local workflow context before "
+                        "configuring an external target."
+                    )
+                path = root / ".projectlore" / "workflow-target.json"
+                if args.apply:
+                    path = configure_workflow_target(root, workflow_target)
+                    # Old evidence is rejected after target activation even if
+                    # interruption occurs before this cleanup.
+                    (root / ".projectlore" / "scope.json").unlink(
+                        missing_ok=True
+                    )
+                    (root / ".projectlore" / "workflow-context.json").unlink(
+                        missing_ok=True
+                    )
                 result = {
-                    "configured": True,
+                    "configured": bool(args.apply),
+                    "applied": bool(args.apply),
                     "path": str(path),
-                    "target": target.model_dump(mode="json"),
+                    "target": workflow_target.model_dump(mode="json"),
                     "credential_stored": False,
                 }
             elif args.scope_command == "refresh":
@@ -519,6 +551,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 }
             else:
                 scope_target = load_scope_target(root, required=False)
+                status_target = load_workflow_target(root)
                 scope_error = None
                 try:
                     status_scope_snapshot = load_scope_snapshot(root)
@@ -528,16 +561,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                 result = {
                     "context": None,
                     "target": (
-                        scope_target.model_dump(mode="json")
-                        if scope_target is not None
-                        else None
+                        status_target.model_dump(mode="json")
+                        if status_target is not None
+                        else (
+                            scope_target.model_dump(mode="json")
+                            if scope_target is not None
+                            else None
+                        )
                     ),
                     "scope": (
                         status_scope_snapshot.model_dump(mode="json")
                         if status_scope_snapshot is not None
                         else None
                     ),
+                    "workflow_observation": (
+                        status_scope_snapshot.model_dump(mode="json")
+                        if status_scope_snapshot is not None
+                        else None
+                    ),
                     "scope_error": scope_error,
+                    "workflow_error": scope_error,
                 }
                 try:
                     result["context"] = load_workflow_context(root).model_dump(
@@ -546,6 +589,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 except ValueError as error:
                     if result["scope_error"] is None:
                         result["scope_error"] = str(error)
+                        result["workflow_error"] = str(error)
         except (OSError, RuntimeError, TimeoutError, ValueError) as error:
             parser.error(str(error))
         print(json.dumps(result, indent=2))
@@ -626,9 +670,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = asyncio.run(
                 evaluate_once(
                     args.corpus,
-                    args.frame_id,
-                    args.space_id,
                     args.output,
+                    provider=args.provider,
+                    scope_id=args.scope_id,
+                    container_id=args.container_id,
                 )
             )
         except (FileExistsError, FileNotFoundError, OSError, ValueError) as error:

@@ -13,6 +13,10 @@ from pydantic import Field, ValidationError
 from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.models import StrictModel
 from projectlore.scope import ScopeSnapshot
+from projectlore.workflow import ObservedWorkflowContext
+from projectlore.workflow_compat import legacy_snapshot_to_observation
+from projectlore.workflow_state import write_observed_context
+from projectlore.workflow_target import load_workflow_target
 
 SCOPE_TARGET_PATH = Path(".projectlore/scope-target.json")
 SCOPE_SNAPSHOT_PATH = Path(".projectlore/scope.json")
@@ -72,11 +76,31 @@ async def refresh_scope(
     authority: LegacyScopeAuthority,
 ) -> tuple[Path, ScopeSnapshot]:
     """Fetch target scope and atomically activate it only after validation."""
-    target = load_scope_target(root)
-    assert target is not None
-    snapshot = await authority.current_scope(target.frame_id, target.space_id)
-    if snapshot.frame_id != target.frame_id:
-        raise ValueError("Fraimed returned a different Frame than the target.")
+    target = load_workflow_target(root)
+    if target is not None:
+        if target.provider_id != "fraimed":
+            raise ValueError("Configured workflow target does not use this adapter.")
+        scope_id, container_id = target.scope_id, target.container_id
+    else:
+        legacy = load_scope_target(root, required=True)
+        assert legacy is not None
+        scope_id, container_id = legacy.frame_id, legacy.space_id
+    snapshot = await authority.current_scope(scope_id, container_id)
+    if snapshot.frame_id != scope_id:
+        raise ValueError(
+            "Workflow provider returned a different scope than the target."
+        )
+    if target is not None:
+        observation = legacy_snapshot_to_observation(snapshot, target)
+        write_observed_context(
+            root,
+            ObservedWorkflowContext(
+                context_version="projectlore-workflow-context/1.0.0",
+                context_kind="observed",
+                observation=observation,
+                maximum_age_seconds=300,
+            ),
+        )
     path = _fixed_path(root, SCOPE_SNAPSHOT_PATH)
     _atomic_write(path, f"{snapshot.model_dump_json(indent=2)}\n")
     return path, snapshot

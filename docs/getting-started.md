@@ -127,11 +127,13 @@ the previous valid representation; rerunning a completed migration is
 idempotent. External observations cannot be downgraded into local declarations.
 
 ```shell
-lore scope target FRAME_ID SPACE_ID
+lore scope target --provider fraimed SCOPE_ID CONTAINER_ID
 ```
 
-The command writes only `.projectlore/scope-target.json`; it never stores a
-Fraimed credential. Export `FRAIMED_API_TOKEN` in the agent process
+The command writes only the provider-neutral
+`.projectlore/workflow-target.json`; frozen legacy target files are read only
+as a compatibility fallback when the canonical target is absent. It never
+stores a credential. Export `FRAIMED_API_TOKEN` in the agent process
 environment, then refresh explicitly or start a configured client session:
 
 ```shell

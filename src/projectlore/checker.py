@@ -129,13 +129,22 @@ class BubblewrapSandbox:
 class ContextEvidence:
     """Untrusted context safe for display, never execution."""
 
-    source_kind: Literal["model", "fraimed", "documentation", "code"]
+    source_kind: Literal["model", "workflow_provider", "documentation", "code"]
     text: str
     trust: Literal["untrusted_data"] = "untrusted_data"
 
+    def __post_init__(self) -> None:
+        if self.source_kind not in {
+            "model",
+            "workflow_provider",
+            "documentation",
+            "code",
+        }:
+            raise ValueError("Unsupported context evidence source kind.")
+
 
 def redact_context(
-    source_kind: Literal["model", "fraimed", "documentation", "code"],
+    source_kind: Literal["model", "workflow_provider", "documentation", "code"],
     text: str,
 ) -> ContextEvidence:
     """Redact common inline credentials while preserving untrusted-data status."""

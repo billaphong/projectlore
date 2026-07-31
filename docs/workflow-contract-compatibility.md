@@ -9,7 +9,8 @@ migration policy, not authorization to change a payload in place.
 | Surface | Current identifier | Phase 1 classification | Compatibility decision |
 | --- | --- | --- | --- |
 | Canonical model | `schema_version` (`0.x` currently accepted) | Independent schema contract | Continue explicit model migrations; reads never rewrite canonical YAML. |
-| MCP tools and envelopes | `projectlore-tools/0.2.0` | Public tool contract | Provider-neutral arguments or result states require a new contract version. |
+| MCP tools and envelopes | `projectlore-tools/0.3.0` | Current provider-neutral public tool contract | `policy_check` requires only facts; optional identity can only confirm operator configuration. |
+| MCP tools and envelopes | `projectlore-tools/0.2.0` | Frozen compatibility contract | The former caller-selected workflow identity is not accepted by 0.3. |
 | `ScopeSnapshot` | Unversioned; `frame_*` fields | Legacy public payload | Freeze with a golden fixture. A provider-neutral replacement is breaking and must have an explicit version and migration path. |
 | `ScopeReceipt` | `scope-receipt/0.1.0` | Public evidence payload | Continue reading the golden Fraimed-shaped receipt until a documented major-version removal. Additive readers may normalize it internally. |
 | `ScopeTarget` | `scope-target/0.1.0` | Local persisted configuration | Migrate explicitly; the next format adds canonical model identity and a root-relative model entrypoint. Never guess when discovery is ambiguous. |

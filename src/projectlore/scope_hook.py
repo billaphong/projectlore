@@ -7,11 +7,10 @@ import json
 import sys
 from pathlib import Path
 
-from projectlore.scope_cache import (
-    load_scope_target,
-    refresh_scope_from_environment,
-)
+from projectlore.scope_cache import load_scope_target, refresh_scope_from_environment
+from projectlore.workflow import DeclaredWorkflowContext
 from projectlore.workflow_state import CONTEXT_PATH, load_workflow_context
+from projectlore.workflow_target import load_workflow_target
 
 MAX_INPUT_BYTES = 65_536
 
@@ -29,9 +28,12 @@ def main() -> int:
             raise ValueError("Scope hook field 'cwd' is required.")
         root = Path(cwd_value).resolve(strict=True)
         if (root / CONTEXT_PATH).is_file():
-            load_workflow_context(root)
-            return 0
-        if load_scope_target(root, required=False) is None:
+            context = load_workflow_context(root)
+            if isinstance(context, DeclaredWorkflowContext):
+                return 0
+        if load_workflow_target(root) is None and load_scope_target(
+            root, required=False
+        ) is None:
             return 0
         path, snapshot = asyncio.run(refresh_scope_from_environment(root))
     except (
@@ -47,6 +49,7 @@ def main() -> int:
             {
                 "refreshed": True,
                 "path": str(path),
+                "scope_id": snapshot.frame_id,
                 "frame_id": snapshot.frame_id,
                 "authority_ref": snapshot.authority_ref,
             },

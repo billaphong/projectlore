@@ -37,7 +37,7 @@ separately authorizes and completes publication.
 ProjectLore works without Fraimed or any hosted workflow service. Deterministic
 rules default to standalone evaluation. Optional local workflow context can be
 previewed and set with `lore scope local ... --apply`; an explicit
-`lore scope target FRAME_ID SPACE_ID`
+`lore scope target --provider fraimed SCOPE_ID CONTAINER_ID`
 instead enables the Fraimed adapter. Generated SessionStart hooks refresh only
 that configured external target. Configured checked-out source can be evaluated with
 `lore source-gate projectlore.yaml --all-configured`; its local or CI evidence
@@ -141,7 +141,7 @@ execution fails closed unless a trusted operating-system network sandbox is
 supplied. The first concrete backend uses bubblewrap with an unshared network
 namespace and a read-only project bind; its executable is digest-pinned.
 Network exceptions are not supported in this release. All model,
-Fraimed, documentation, and code context remains explicitly untrusted data;
+workflow-provider, documentation, and code context remains explicitly untrusted data;
 common inline credentials are redacted and prompt-like text is never executed.
 
 Repository assurance remains evidence-scoped. Changed files resolve to rules

@@ -116,8 +116,8 @@ hook does not claim that it independently queried Fraimed.
 
 ProjectLore needs no workflow provider for bindings whose requirement is
 `none`. `lore scope local ID --title TITLE` supplies optional standalone context
-without an account or network. Configure the optional Fraimed identity with
-`lore scope target FRAME_ID SPACE_ID`. `lore scope refresh` and the generated
+without an account or network. Configure that optional adapter explicitly with
+`lore scope target --provider fraimed SCOPE_ID CONTAINER_ID`. `lore scope refresh` and the generated
 Claude Code and Codex CLI SessionStart hooks use an environment-only
 `FRAIMED_API_TOKEN` to refresh that snapshot through HTTPS Fraimed MCP.
 Activation is atomic: a failed or invalid response cannot partially overwrite

@@ -14,7 +14,8 @@ from projectlore.policy import PolicyRequest, PolicyService
 from projectlore.query import QueryService
 from projectlore.scope import ScopeSnapshot
 from projectlore.service import ModelService
-from projectlore.workflow import WorkflowAuthenticationRequired
+from projectlore.workflow import WorkflowAuthenticationRequired, WorkflowTarget
+from projectlore.workflow_target import configure_workflow_target
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "examples" / "homebrew.forecast-trust.project.yaml"
@@ -109,12 +110,12 @@ def test_mcp_exposes_complete_read_only_contract_and_timeout_state() -> None:
     for tool, arguments in cases.items():
         result = asyncio.run(server.call_tool(tool, arguments))
         assert isinstance(result, tuple)
-        assert result[1]["contract_version"] == "projectlore-tools/0.2.0"
+        assert result[1]["contract_version"] == "projectlore-tools/0.3.0"
 
     timeout = asyncio.run(
         server.call_tool(
             "policy_check",
-            {"facts": {}, "frame_id": "frame", "space_id": "space"},
+            {"facts": {}},
         )
     )
     assert isinstance(timeout, tuple)
@@ -134,11 +135,26 @@ def test_mcp_reads_start_without_fraimed_credentials(
     policy = asyncio.run(
         server.call_tool(
             "policy_check",
-            {"facts": {}, "frame_id": "frame", "space_id": "space"},
+            {"facts": {}},
         )
     )
     assert isinstance(policy, tuple)
     assert policy[1]["decision"] == "not_applicable"
+
+
+def test_policy_tool_schema_is_provider_neutral_and_facts_only_required() -> None:
+    tools = asyncio.run(create_server(MODEL).list_tools())
+    policy_tool = next(tool for tool in tools if tool.name == "policy_check")
+    schema = policy_tool.inputSchema
+
+    assert schema["required"] == ["facts"]
+    assert set(schema["properties"]) == {
+        "facts",
+        "context_requirements",
+        "target_identity",
+    }
+    assert "frame_id" not in json.dumps(schema)
+    assert "space_id" not in json.dumps(schema)
 
 
 def test_mcp_resolves_workflow_zero_or_one_time_from_the_frozen_plan(
@@ -172,6 +188,17 @@ def test_mcp_resolves_workflow_zero_or_one_time_from_the_frozen_plan(
         ),
         encoding="utf-8",
     )
+    configure_workflow_target(
+        tmp_path,
+        WorkflowTarget(
+            target_version="projectlore-workflow-target/1.0.0",
+            project_id="lore:homebrew/forecast-trust",
+            model_entrypoint="projectlore.yaml",
+            provider_id="fraimed",
+            scope_id="frame",
+            container_id="space",
+        ),
+    )
     authority = CountingScopeAuthority()
     server = create_server(model, authority)
 
@@ -183,8 +210,6 @@ def test_mcp_resolves_workflow_zero_or_one_time_from_the_frozen_plan(
                     "calibration_backtest_end": "2026-08-02T00:00:00Z",
                     "demand_issued_at": "2026-08-01T00:00:00Z",
                 },
-                "frame_id": "frame",
-                "space_id": "space",
             },
         )
     )
@@ -199,8 +224,6 @@ def test_mcp_resolves_workflow_zero_or_one_time_from_the_frozen_plan(
                     "demand_issued_at": "2026-08-01T00:00:00Z",
                     "snapshot_created_at": "2026-08-01T01:00:00Z",
                 },
-                "frame_id": "frame",
-                "space_id": "space",
             },
         )
     )
@@ -244,6 +267,17 @@ def test_mcp_preserves_typed_provider_failure_per_binding(tmp_path: Path) -> Non
         ),
         encoding="utf-8",
     )
+    configure_workflow_target(
+        tmp_path,
+        WorkflowTarget(
+            target_version="projectlore-workflow-target/1.0.0",
+            project_id="lore:homebrew/forecast-trust",
+            model_entrypoint="projectlore.yaml",
+            provider_id="fraimed",
+            scope_id="frame",
+            container_id="space",
+        ),
+    )
     result = asyncio.run(
         create_server(model, AuthenticationFailureAuthority()).call_tool(
             "policy_check",
@@ -252,8 +286,6 @@ def test_mcp_preserves_typed_provider_failure_per_binding(tmp_path: Path) -> Non
                     "demand_issued_at": "2026-08-01T00:00:00Z",
                     "snapshot_created_at": "2026-08-01T01:00:00Z",
                 },
-                "frame_id": "frame",
-                "space_id": "space",
             },
         )
     )
@@ -268,8 +300,6 @@ def test_mcp_preserves_typed_provider_failure_per_binding(tmp_path: Path) -> Non
                     "demand_issued_at": "2026-08-01T00:00:00Z",
                     "snapshot_created_at": "2026-08-01T01:00:00Z",
                 },
-                "frame_id": "frame",
-                "space_id": "space",
             },
         )
     )

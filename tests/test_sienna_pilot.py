@@ -98,8 +98,6 @@ def test_sienna_mcp_and_core_share_contract_model_and_policy_outcomes() -> None:
             "policy_check",
             {
                 "facts": {"mutation_path": "client_direct_state_write"},
-                "frame_id": FRAME_ID,
-                "space_id": SPACE_ID,
             },
         )
     )
@@ -122,10 +120,11 @@ def test_sienna_pre_registered_evaluation_passes(tmp_path: Path) -> None:
     result = asyncio.run(
         evaluate_once(
             CORPUS,
-            FRAME_ID,
-            SPACE_ID,
             output,
-            StaticScopeAuthority(),
+            provider="fraimed",
+            scope_id=FRAME_ID,
+            container_id=SPACE_ID,
+            scope_authority=StaticScopeAuthority(),
         )
     )
 

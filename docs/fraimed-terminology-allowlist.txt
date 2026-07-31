@@ -1,0 +1,26 @@
+# Exact paths where the optional adapter, frozen compatibility contracts, or
+# pilot history may retain the proper name "Fraimed". Tests and fixtures are
+# outside the user-facing terminology gate.
+README.md
+docs/architecture.md
+docs/compatibility.md
+docs/extension-sdk.md
+docs/getting-started.md
+docs/phase-audit.md
+docs/pilots/sienna-campaign-authority.md
+docs/product-research-and-plan.md
+docs/release-policy.md
+docs/standalone-rationalization-plan.md
+docs/versioning-and-migrations.md
+docs/workflow-contract-compatibility.md
+src/projectlore/cli.py
+src/projectlore/evaluation.py
+src/projectlore/fraimed.py
+src/projectlore/mcp_server.py
+src/projectlore/policy.py
+src/projectlore/provider_dispatch.py
+src/projectlore/scope.py
+src/projectlore/scope_cache.py
+src/projectlore/scope_hook.py
+src/projectlore/source_policy.py
+src/projectlore/workflow_compat.py

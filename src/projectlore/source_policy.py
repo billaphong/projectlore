@@ -18,9 +18,11 @@ from projectlore.workflow import (
     DeclaredWorkflowContext,
     LocalScopeProvider,
     WorkflowTarget,
+    WorkflowTargetMismatch,
 )
 from projectlore.workflow_compat import observation_to_legacy_snapshot
 from projectlore.workflow_state import CONTEXT_PATH, load_workflow_context
+from projectlore.workflow_target import load_workflow_target
 
 SOURCE_BINDINGS_PATH = Path(".projectlore/source-policy-bindings.json")
 SCOPE_SNAPSHOT_PATH = Path(".projectlore/scope.json")
@@ -97,8 +99,26 @@ def load_scope_snapshot(
                 workflow_target
             )
         else:
+            configured_target = load_workflow_target(root)
+            if configured_target is None:
+                raise ValueError(
+                    "Observed workflow context requires a configured target."
+                )
+            try:
+                context.observation.validate_target(configured_target)
+            except WorkflowTargetMismatch as error:
+                raise ValueError(
+                    "Workflow observation does not match the configured target; "
+                    "run 'lore scope refresh'."
+                ) from error
             observation = context.observation
         return observation_to_legacy_snapshot(observation)
+    configured_target = load_workflow_target(root)
+    if configured_target is not None:
+        raise ValueError(
+            "Configured workflow target has no target-bound observation; "
+            "run 'lore scope refresh'."
+        )
     path = _configured_path(root, SCOPE_SNAPSHOT_PATH)
     if not path.is_file():
         if required:

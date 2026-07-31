@@ -11,7 +11,7 @@ from typing import Any, Literal
 from projectlore.compiler import ProjectModel
 from projectlore.models import Concept, Relationship, Rule, Source
 
-CONTRACT_VERSION = "projectlore-tools/0.2.0"
+CONTRACT_VERSION = "projectlore-tools/0.3.0"
 _TOKEN = re.compile(r"[a-z0-9_]+")
 _TOOLS: dict[str, object] = {
     "model_status": {"arguments": []},
@@ -23,7 +23,11 @@ _TOOLS: dict[str, object] = {
     },
     "model_validate": {"arguments": []},
     "context_for_task": {"arguments": ["task", "limit"]},
-    "policy_check": {"arguments": ["facts", "frame_id", "space_id"]},
+    "policy_check": {
+        "required": ["facts"],
+        "optional": ["context_requirements", "target_identity"],
+        "target_authority": "operator_configured_only",
+    },
 }
 
 

@@ -22,9 +22,11 @@ from projectlore.service import ModelService
 
 async def evaluate_once(
     corpus_path: Path,
-    frame_id: str,
-    space_id: str,
     output_path: Path,
+    *,
+    provider: str | None = None,
+    scope_id: str | None = None,
+    container_id: str | None = None,
     scope_authority: LegacyScopeAuthority | None = None,
 ) -> dict[str, Any]:
     if output_path.exists():
@@ -34,14 +36,20 @@ async def evaluate_once(
     corpus = yaml.safe_load(corpus_path.read_text(encoding="utf-8"))
     project_root = corpus_path.resolve().parents[2]
     model_path = project_root / corpus["model"]
-    authority = scope_authority or FraimedScopeAuthority(
-        os.environ.get(
-            "PROJECTLORE_FRAIMED_MCP_URL",
-            "https://www.fraimed.ai/api/mcp",
-        ),
-        os.environ.get("FRAIMED_API_TOKEN", ""),
-    )
-    scope = await authority.current_scope(frame_id, space_id)
+    scope = None
+    if provider is not None:
+        if provider != "fraimed":
+            raise ValueError(f"Unsupported evaluation provider: {provider}")
+        if scope_id is None:
+            raise ValueError("External evaluation requires --scope-id.")
+        authority = scope_authority or FraimedScopeAuthority(
+            os.environ.get(
+                "PROJECTLORE_FRAIMED_MCP_URL",
+                "https://www.fraimed.ai/api/mcp",
+            ),
+            os.environ.get("FRAIMED_API_TOKEN", ""),
+        )
+        scope = await authority.current_scope(scope_id, container_id)
 
     service = ModelService(model_path)
     retrieval_success = 0
@@ -118,7 +126,9 @@ async def evaluate_once(
         "run_at": datetime.now(UTC).isoformat(),
         "corpus": corpus_path.as_posix(),
         "model": Path(corpus["model"]).as_posix(),
-        "scope_authority_ref": scope.authority_ref,
+        "workflow_authority_ref": (
+            scope.authority_ref if scope is not None else None
+        ),
         "measurements": {
             "retrieval_success": {
                 "successful": retrieval_success,

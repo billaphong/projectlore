@@ -15,6 +15,7 @@ from projectlore.scope import ScopeSnapshot
 from projectlore.workflow import (
     WORKFLOW_CONTEXT_ADAPTER,
     DeclaredWorkflowContext,
+    ObservedWorkflowContext,
     WorkflowContext,
     WorkflowTarget,
     make_local_declaration,
@@ -22,6 +23,7 @@ from projectlore.workflow import (
 
 CONTEXT_PATH = Path(".projectlore/workflow-context.json")
 LEGACY_TARGET_PATH = Path(".projectlore/scope-target.json")
+WORKFLOW_TARGET_PATH = Path(".projectlore/workflow-target.json")
 LEGACY_CONTEXT_PATH = Path(".projectlore/scope.json")
 MAX_STATE_BYTES = 16 * 1024
 
@@ -61,7 +63,10 @@ def preview_local_declaration(
         before_digest=_file_digest(path),
         after_digest=_bytes_digest(content.encode()),
         target_digest=context.content_digest,
-        removes_external_target=_state_path(root, LEGACY_TARGET_PATH).is_file(),
+        removes_external_target=(
+            _state_path(root, LEGACY_TARGET_PATH).is_file()
+            or _state_path(root, WORKFLOW_TARGET_PATH).is_file()
+        ),
         legacy_target_digest=_file_digest(_state_path(root, LEGACY_TARGET_PATH)),
         legacy_context_digest=_file_digest(_state_path(root, LEGACY_CONTEXT_PATH)),
         content=content,
@@ -83,6 +88,7 @@ def apply_local_declaration(
     if not isinstance(context, DeclaredWorkflowContext):
         raise ValueError("Written workflow declaration did not validate.")
     _state_path(root, LEGACY_TARGET_PATH).unlink(missing_ok=True)
+    _state_path(root, WORKFLOW_TARGET_PATH).unlink(missing_ok=True)
     _state_path(root, LEGACY_CONTEXT_PATH).unlink(missing_ok=True)
     return context
 
@@ -103,7 +109,10 @@ def preview_clear(root: Path, *, target_digest: str) -> WorkflowStatePreview:
         before_digest=_file_digest(path),
         after_digest=None,
         target_digest=target_digest,
-        removes_external_target=_state_path(root, LEGACY_TARGET_PATH).is_file(),
+        removes_external_target=(
+            _state_path(root, LEGACY_TARGET_PATH).is_file()
+            or _state_path(root, WORKFLOW_TARGET_PATH).is_file()
+        ),
         legacy_target_digest=_file_digest(_state_path(root, LEGACY_TARGET_PATH)),
         legacy_context_digest=_file_digest(_state_path(root, LEGACY_CONTEXT_PATH)),
         content=None,
@@ -128,6 +137,7 @@ def apply_clear(root: Path, preview: WorkflowStatePreview) -> None:
     # Canonical context remains authoritative until every legacy refresh input
     # is gone. An interruption therefore leaves a valid canonical state.
     _state_path(root, LEGACY_TARGET_PATH).unlink(missing_ok=True)
+    _state_path(root, WORKFLOW_TARGET_PATH).unlink(missing_ok=True)
     _state_path(root, LEGACY_CONTEXT_PATH).unlink(missing_ok=True)
     path.unlink()
 
@@ -145,6 +155,18 @@ def load_workflow_context(root: Path) -> WorkflowContext:
         return WORKFLOW_CONTEXT_ADAPTER.validate_json(raw)
     except ValidationError as error:
         raise ValueError(f"Workflow context is invalid: {error}") from error
+
+
+def write_observed_context(
+    root: Path, context: ObservedWorkflowContext
+) -> Path:
+    """Atomically persist target-bound disposable external evidence."""
+    path = _state_path(root, CONTEXT_PATH)
+    _atomic_write(path, f"{context.model_dump_json(indent=2)}\n")
+    loaded = load_workflow_context(root)
+    if loaded != context:
+        raise ValueError("Written workflow observation did not validate.")
+    return path
 
 
 def preview_legacy_local_migration(
@@ -218,6 +240,7 @@ def apply_legacy_local_migration(
         # Canonical state remains authoritative while cleanup finishes. This
         # makes a retry complete an interruption after activation.
         _state_path(root, LEGACY_TARGET_PATH).unlink(missing_ok=True)
+        _state_path(root, WORKFLOW_TARGET_PATH).unlink(missing_ok=True)
         _state_path(root, LEGACY_CONTEXT_PATH).unlink(missing_ok=True)
         return current
     validated = WORKFLOW_CONTEXT_ADAPTER.validate_json(preview.content)
@@ -225,6 +248,7 @@ def apply_legacy_local_migration(
         raise ValueError("Migrated workflow context has the wrong variant.")
     _atomic_write(path, preview.content)
     _state_path(root, LEGACY_TARGET_PATH).unlink(missing_ok=True)
+    _state_path(root, WORKFLOW_TARGET_PATH).unlink(missing_ok=True)
     _state_path(root, LEGACY_CONTEXT_PATH).unlink(missing_ok=True)
     return validated
 

@@ -96,10 +96,7 @@ def test_mcp_tools_return_the_same_digests_as_the_core() -> None:
                 "facts": {
                     "demand_issued_at": "2026-07-22T12:00:00Z",
                     "snapshot_created_at": "2026-07-22T12:00:00Z",
-                }
-                ,
-                "frame_id": "019fb0b0-2e3d-720a-858f-10444184fe59",
-                "space_id": "019e67a2-d321-74b7-ba2a-90a93a26f630",
+                },
             },
         )
     )
