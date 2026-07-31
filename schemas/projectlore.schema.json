@@ -616,6 +616,269 @@
       "title": "ObservedWorkflowContext",
       "type": "object"
     },
+    "PlannedBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "failure_message": {
+          "title": "Failure Message",
+          "type": "string"
+        },
+        "failure_outcome": {
+          "title": "Failure Outcome",
+          "type": "string"
+        },
+        "left_fact": {
+          "title": "Left Fact",
+          "type": "string"
+        },
+        "relation": {
+          "enum": [
+            "lte",
+            "equal"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "right_fact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Right Fact"
+        },
+        "right_literal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Right Literal"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "rule_present": {
+          "title": "Rule Present",
+          "type": "boolean"
+        },
+        "scope_requirement": {
+          "enum": [
+            "none",
+            "workflow",
+            "observed_workflow"
+          ],
+          "title": "Scope Requirement",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "value_type": {
+          "enum": [
+            "datetime",
+            "decimal",
+            "string"
+          ],
+          "title": "Value Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "left_fact",
+        "relation",
+        "right_fact",
+        "right_literal",
+        "value_type",
+        "failure_outcome",
+        "failure_message",
+        "scope_requirement",
+        "rule_present",
+        "source_refs"
+      ],
+      "title": "PlannedBinding",
+      "type": "object"
+    },
+    "PlannedFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_applicable",
+            "indeterminate"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "outcome": {
+          "title": "Outcome",
+          "type": "string"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "workflow_receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkflowReceipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "rule_id",
+        "decision",
+        "outcome",
+        "message",
+        "source_refs",
+        "workflow_receipt"
+      ],
+      "title": "PlannedFinding",
+      "type": "object"
+    },
+    "PlannedPolicyResult": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_applicable",
+            "indeterminate"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/PlannedFinding"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "plan_digest": {
+          "title": "Plan Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision",
+        "findings",
+        "plan_digest"
+      ],
+      "title": "PlannedPolicyResult",
+      "type": "object"
+    },
+    "PolicyEvaluationPlan": {
+      "additionalProperties": false,
+      "description": "Immutable snapshot consumed by the pure second-stage evaluator.",
+      "properties": {
+        "bindings": {
+          "items": {
+            "$ref": "#/$defs/PlannedBinding"
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "context_requirements": {
+          "items": {
+            "enum": [
+              "workflow",
+              "observed_workflow"
+            ],
+            "type": "string"
+          },
+          "title": "Context Requirements",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "model_digest": {
+          "title": "Model Digest",
+          "type": "string"
+        },
+        "plan_digest": {
+          "title": "Plan Digest",
+          "type": "string"
+        },
+        "plan_version": {
+          "const": "projectlore-policy-plan/1.0.0",
+          "title": "Plan Version",
+          "type": "string"
+        },
+        "registry_digest": {
+          "title": "Registry Digest",
+          "type": "string"
+        },
+        "target_config_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Config Digest"
+        }
+      },
+      "required": [
+        "plan_version",
+        "facts",
+        "bindings",
+        "context_requirements",
+        "model_digest",
+        "registry_digest",
+        "target_config_digest",
+        "plan_digest"
+      ],
+      "title": "PolicyEvaluationPlan",
+      "type": "object"
+    },
     "Relationship": {
       "additionalProperties": false,
       "properties": {
@@ -1559,6 +1822,8 @@
     "WorkflowObservation",
     "WorkflowReceipt",
     "DeclaredWorkflowContext",
-    "ObservedWorkflowContext"
+    "ObservedWorkflowContext",
+    "PolicyEvaluationPlan",
+    "PlannedPolicyResult"
   ]
 }

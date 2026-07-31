@@ -17,6 +17,13 @@ from pydantic import Field, TypeAdapter, model_validator
 from projectlore.models import StrictModel
 
 WorkflowAssurance = Literal["declared", "observed"]
+WorkflowFailureCode = Literal[
+    "workflow_unavailable",
+    "workflow_timeout",
+    "workflow_authentication_required",
+    "workflow_response_invalid",
+    "workflow_target_mismatch",
+]
 
 
 class WorkflowTarget(StrictModel):
@@ -132,6 +139,20 @@ class WorkflowReceipt(StrictModel):
     age_seconds: float = Field(ge=0)
     fresh: bool
     maximum_age_seconds: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def timing_is_consistent(self) -> WorkflowReceipt:
+        if self.observed_at.tzinfo is None or self.evaluated_at.tzinfo is None:
+            raise ValueError("Receipt timestamps must include a timezone.")
+        age = (
+            self.evaluated_at.astimezone(UTC)
+            - self.observed_at.astimezone(UTC)
+        ).total_seconds()
+        if age < 0 or abs(self.age_seconds - age) > 1e-6:
+            raise ValueError("Receipt age does not match its timestamps.")
+        if self.fresh != (age <= self.maximum_age_seconds):
+            raise ValueError("Receipt freshness does not match its age.")
+        return self
 
 
 class DeclaredWorkflowContext(StrictModel):
@@ -282,7 +303,7 @@ class WorkflowScopeProvider(Protocol):
 class WorkflowProviderFailure(Exception):
     """Safe, stable provider failure suitable for public diagnostics."""
 
-    code: str = "workflow_unavailable"
+    code: WorkflowFailureCode = "workflow_unavailable"
     public_detail: str = "Workflow context is unavailable."
 
     def __init__(self) -> None:
@@ -290,27 +311,27 @@ class WorkflowProviderFailure(Exception):
 
 
 class WorkflowUnavailable(WorkflowProviderFailure):
-    code = "workflow_unavailable"
+    code: WorkflowFailureCode = "workflow_unavailable"
     public_detail = "Workflow provider is unavailable."
 
 
 class WorkflowTimeout(WorkflowProviderFailure):
-    code = "workflow_timeout"
+    code: WorkflowFailureCode = "workflow_timeout"
     public_detail = "Workflow provider timed out."
 
 
 class WorkflowAuthenticationRequired(WorkflowProviderFailure):
-    code = "workflow_authentication_required"
+    code: WorkflowFailureCode = "workflow_authentication_required"
     public_detail = "Workflow provider authentication is required."
 
 
 class WorkflowResponseInvalid(WorkflowProviderFailure):
-    code = "workflow_response_invalid"
+    code: WorkflowFailureCode = "workflow_response_invalid"
     public_detail = "Workflow provider returned an invalid response."
 
 
 class WorkflowTargetMismatch(WorkflowProviderFailure):
-    code = "workflow_target_mismatch"
+    code: WorkflowFailureCode = "workflow_target_mismatch"
     public_detail = "Workflow response does not match the configured target."
 
 

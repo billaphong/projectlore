@@ -68,6 +68,14 @@ def discover_model(repository_root: Path) -> Path:
     return _confined_path(existing[0], root, existing[0])
 
 
+def project_root_for_model(entrypoint: Path) -> Path:
+    """Return the repository root implied by a supported model entrypoint."""
+    resolved = entrypoint.resolve()
+    if resolved.name == "model.yaml" and resolved.parent.name == ".projectlore":
+        return resolved.parent.parent
+    return resolved.parent
+
+
 def load_repository_model(
     entrypoint: Path,
     *,

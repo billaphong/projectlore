@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from projectlore.policy import PolicyRequest, PolicyService
 from projectlore.query import QueryService
 from projectlore.scope import ScopeSnapshot
 from projectlore.service import ModelService
+from projectlore.workflow import WorkflowAuthenticationRequired
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "examples" / "homebrew.forecast-trust.project.yaml"
@@ -137,6 +139,172 @@ def test_mcp_reads_start_without_fraimed_credentials(
     )
     assert isinstance(policy, tuple)
     assert policy[1]["decision"] == "not_applicable"
+
+
+def test_mcp_resolves_workflow_zero_or_one_time_from_the_frozen_plan(
+    tmp_path: Path,
+) -> None:
+    model = tmp_path / "projectlore.yaml"
+    scoped_rule = "lore:homebrew/rule/workflow-forecast-issued-by-snapshot"
+    model.write_text(
+        MODEL.read_text(encoding="utf-8").replace(
+            "lore:homebrew/rule/forecast-issued-by-snapshot", scoped_rule
+        ),
+        encoding="utf-8",
+    )
+    registry_dir = tmp_path / ".projectlore"
+    registry_dir.mkdir()
+    (registry_dir / "policy-bindings.json").write_text(
+        json.dumps(
+            [
+                {
+                    "rule_id": scoped_rule,
+                    "left_fact": "demand_issued_at",
+                    "relation": "lte",
+                    "right_fact": "snapshot_created_at",
+                    "right_literal": None,
+                    "value_type": "datetime",
+                    "failure_outcome": "reject_snapshot",
+                    "failure_message": "Demand was issued after snapshot creation.",
+                    "scope_requirement": "workflow",
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+    authority = CountingScopeAuthority()
+    server = create_server(model, authority)
+
+    timeless = asyncio.run(
+        server.call_tool(
+            "policy_check",
+            {
+                "facts": {
+                    "calibration_backtest_end": "2026-08-02T00:00:00Z",
+                    "demand_issued_at": "2026-08-01T00:00:00Z",
+                },
+                "frame_id": "frame",
+                "space_id": "space",
+            },
+        )
+    )
+    assert isinstance(timeless, tuple)
+    assert authority.calls == 0
+
+    scoped = asyncio.run(
+        server.call_tool(
+            "policy_check",
+            {
+                "facts": {
+                    "demand_issued_at": "2026-08-01T00:00:00Z",
+                    "snapshot_created_at": "2026-08-01T01:00:00Z",
+                },
+                "frame_id": "frame",
+                "space_id": "space",
+            },
+        )
+    )
+    assert isinstance(scoped, tuple)
+    assert authority.calls == 1
+    by_rule = {item["rule_id"]: item for item in scoped[1]["findings"]}
+    assert by_rule[scoped_rule]["workflow_receipt"] is not None
+    assert all(
+        item["workflow_receipt"] is None
+        for rule_id, item in by_rule.items()
+        if rule_id != scoped_rule
+    )
+
+
+def test_mcp_preserves_typed_provider_failure_per_binding(tmp_path: Path) -> None:
+    model = tmp_path / "projectlore.yaml"
+    scoped_rule = "lore:homebrew/rule/workflow-forecast-issued-by-snapshot"
+    model.write_text(
+        MODEL.read_text(encoding="utf-8").replace(
+            "lore:homebrew/rule/forecast-issued-by-snapshot", scoped_rule
+        ),
+        encoding="utf-8",
+    )
+    registry_dir = tmp_path / ".projectlore"
+    registry_dir.mkdir()
+    (registry_dir / "policy-bindings.json").write_text(
+        json.dumps(
+            [
+                {
+                    "rule_id": scoped_rule,
+                    "left_fact": "demand_issued_at",
+                    "relation": "lte",
+                    "right_fact": "snapshot_created_at",
+                    "right_literal": None,
+                    "value_type": "datetime",
+                    "failure_outcome": "reject_snapshot",
+                    "failure_message": "Demand was issued after snapshot creation.",
+                    "scope_requirement": "workflow",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    result = asyncio.run(
+        create_server(model, AuthenticationFailureAuthority()).call_tool(
+            "policy_check",
+            {
+                "facts": {
+                    "demand_issued_at": "2026-08-01T00:00:00Z",
+                    "snapshot_created_at": "2026-08-01T01:00:00Z",
+                },
+                "frame_id": "frame",
+                "space_id": "space",
+            },
+        )
+    )
+    assert isinstance(result, tuple)
+    by_rule = {item["rule_id"]: item for item in result[1]["findings"]}
+    assert by_rule[scoped_rule]["outcome"] == "workflow_authentication_required"
+    mismatch = asyncio.run(
+        create_server(model, MismatchedScopeAuthority()).call_tool(
+            "policy_check",
+            {
+                "facts": {
+                    "demand_issued_at": "2026-08-01T00:00:00Z",
+                    "snapshot_created_at": "2026-08-01T01:00:00Z",
+                },
+                "frame_id": "frame",
+                "space_id": "space",
+            },
+        )
+    )
+    assert isinstance(mismatch, tuple)
+    mismatch_by_rule = {
+        item["rule_id"]: item for item in mismatch[1]["findings"]
+    }
+    assert mismatch_by_rule[scoped_rule]["outcome"] == "workflow_target_mismatch"
+
+
+class CountingScopeAuthority:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
+        self.calls += 1
+        return _scope(datetime.now(UTC))
+
+
+class AuthenticationFailureAuthority:
+    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
+        raise WorkflowAuthenticationRequired()
+
+
+class MismatchedScopeAuthority:
+    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
+        return ScopeSnapshot(
+            authority="fraimed",
+            frame_id="different-frame",
+            frame_title="Other",
+            frame_status="active",
+            validation_open=0,
+            observed_at=datetime.now(UTC),
+            authority_ref="fraimed://frame/different-frame",
+        )
 
 
 def _scope(observed_at: datetime) -> ScopeSnapshot:

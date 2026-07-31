@@ -9,11 +9,29 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from projectlore.fraimed import FraimedScopeAuthority
-from projectlore.policy import PolicyRequest, load_policy_registry
-from projectlore.policy import policy_check as evaluate_policy
+from projectlore.loader import project_root_for_model
+from projectlore.policy import (
+    FailedWorkflowResolution,
+    MissingWorkflowResolution,
+    PlannedPolicyResult,
+    ValidWorkflowResolution,
+    load_policy_registry,
+    plan_policy,
+)
+from projectlore.policy import (
+    evaluate_policy as evaluate_plan,
+)
 from projectlore.query import QueryService
 from projectlore.refresh import RefreshingModelService
 from projectlore.scope_cache import LegacyScopeAuthority
+from projectlore.service import ModelService
+from projectlore.workflow import (
+    ObservedWorkflowContext,
+    WorkflowProviderFailure,
+    WorkflowTarget,
+    issue_workflow_receipt,
+)
+from projectlore.workflow_compat import legacy_snapshot_to_observation
 
 MODEL_ENV = "PROJECTLORE_MODEL"
 FRAIMED_URL_ENV = "PROJECTLORE_FRAIMED_MCP_URL"
@@ -39,11 +57,7 @@ def create_server(
         instructions="Read-only project meaning and deterministic policy tools.",
     )
     models = RefreshingModelService(model_path)
-    project_root = (
-        model_path.resolve().parent.parent
-        if model_path.resolve().parent.name == ".projectlore"
-        else model_path.resolve().parent
-    )
+    project_root = project_root_for_model(model_path)
 
     @server.tool(name="model_status", structured_output=True)
     def model_status() -> dict[str, Any]:
@@ -111,49 +125,144 @@ def create_server(
         snapshot = models.refresh()
         service = snapshot.service
         registry = load_policy_registry(project_root)
-        without_scope = evaluate_policy(
-            service,
-            PolicyRequest(facts=facts),
-            registry=registry,
+        target = (
+            WorkflowTarget(
+                target_version="projectlore-workflow-target/1.0.0",
+                project_id=service.model.id,
+                model_entrypoint=model_path.relative_to(project_root).as_posix(),
+                provider_id="fraimed",
+                scope_id=frame_id,
+                container_id=space_id,
+            )
+            if frame_id is not None
+            else None
         )
-        findings = without_scope.get("findings", [])
-        needs_workflow = any(
-            isinstance(item, dict)
-            and item.get("outcome") == "dependency_unavailable"
-            for item in findings
-        )
-        if not needs_workflow:
-            return snapshot.decorate(without_scope)
+        plan = plan_policy(facts, registry, service.project, target)
+        if not plan.context_requirements:
+            planned = evaluate_plan(
+                plan,
+                MissingWorkflowResolution(
+                    state="missing_context",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                ),
+            )
+            return snapshot.decorate(_planned_envelope(service, planned))
         if authority is None or frame_id is None:
-            return snapshot.decorate(without_scope)
+            planned = evaluate_plan(
+                plan,
+                MissingWorkflowResolution(
+                    state="missing_context",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                ),
+            )
+            return snapshot.decorate(_planned_envelope(service, planned))
         try:
             scope = await authority.current_scope(frame_id, space_id)
         except TimeoutError:
-            result = QueryService(service.project).envelope(
-                {
-                    "decision": "indeterminate",
-                    "findings": [
-                        {
-                            "rule_id": "projectlore:workflow/current-scope",
-                            "decision": "indeterminate",
-                            "outcome": "dependency_timeout",
-                            "message": "Workflow scope lookup timed out.",
-                            "source_refs": [],
-                        }
-                    ],
-                    "scope_receipt": None,
-                }
+            planned = evaluate_plan(
+                plan,
+                FailedWorkflowResolution(
+                    state="provider_failure",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                    failure_code="workflow_timeout",
+                ),
             )
-            return snapshot.decorate(result)
-        result = evaluate_policy(
-            service,
-            PolicyRequest(facts=facts, scope=scope),
-            registry=registry,
-            scope_obtained_via="fraimed_mcp",
+            return snapshot.decorate(_planned_envelope(service, planned))
+        except WorkflowProviderFailure as error:
+            planned = evaluate_plan(
+                plan,
+                FailedWorkflowResolution(
+                    state="provider_failure",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                    failure_code=error.code,
+                ),
+            )
+            return snapshot.decorate(_planned_envelope(service, planned))
+        except Exception:
+            planned = evaluate_plan(
+                plan,
+                FailedWorkflowResolution(
+                    state="provider_failure",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                    failure_code="workflow_unavailable",
+                ),
+            )
+            return snapshot.decorate(_planned_envelope(service, planned))
+        assert target is not None
+        try:
+            observation = legacy_snapshot_to_observation(scope, target)
+            receipt = issue_workflow_receipt(
+                observation,
+                target,
+                model_digest=plan.model_digest,
+            )
+        except WorkflowProviderFailure as error:
+            planned = evaluate_plan(
+                plan,
+                FailedWorkflowResolution(
+                    state="provider_failure",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                    failure_code=error.code,
+                ),
+            )
+            return snapshot.decorate(_planned_envelope(service, planned))
+        except (TypeError, ValueError):
+            planned = evaluate_plan(
+                plan,
+                FailedWorkflowResolution(
+                    state="provider_failure",
+                    model_digest=plan.model_digest,
+                    target_config_digest=plan.target_config_digest,
+                    failure_code="workflow_response_invalid",
+                ),
+            )
+            return snapshot.decorate(_planned_envelope(service, planned))
+        context = ObservedWorkflowContext(
+            context_version="projectlore-workflow-context/1.0.0",
+            context_kind="observed",
+            observation=observation,
+            maximum_age_seconds=receipt.maximum_age_seconds,
         )
-        return snapshot.decorate(result)
+        planned = evaluate_plan(
+            plan,
+            ValidWorkflowResolution(
+                state="valid_context",
+                model_digest=plan.model_digest,
+                target_config_digest=plan.target_config_digest,
+                context=context,
+                observation=observation,
+                receipt=receipt,
+            ),
+        )
+        return snapshot.decorate(_planned_envelope(service, planned))
 
     return server
+
+
+def _planned_envelope(
+    service: ModelService,
+    planned: PlannedPolicyResult,
+) -> dict[str, Any]:
+    source_refs = {ref for item in planned.findings for ref in item.source_refs}
+    sources = [
+        source
+        for source in service.project.model.sources
+        if source.id in source_refs
+    ]
+    payload = planned.model_dump(mode="json")
+    # Frozen tools/0.2 clients still expect this result-level key. Canonical
+    # evidence is carried per finding and this compatibility field stays empty.
+    payload["scope_receipt"] = None
+    return QueryService(service.project).envelope(
+        payload,
+        provenance=sources,
+    )
 
 
 def main() -> None:

@@ -16,14 +16,14 @@ from projectlore.assurance_report import IntegrationEvidence, assess_assurance
 from projectlore.doctor import run_doctor
 from projectlore.evaluation import evaluate_once
 from projectlore.integration import apply_instruction_previews, instruction_previews
-from projectlore.loader import discover_model
+from projectlore.loader import discover_model, project_root_for_model
 from projectlore.mcp_server import create_server
 from projectlore.onboarding import (
     INIT_VERSION,
     apply_initialization,
     initialization_previews,
 )
-from projectlore.policy import PolicyRequest, policy_check
+from projectlore.policy import PolicyRequest, load_policy_registry, policy_check
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.scope_cache import (
     configure_scope_target,
@@ -607,7 +607,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             request = PolicyRequest.model_validate_json(
                 args.request.read_text(encoding="utf-8")
             )
-            result = policy_check(service, request)
+            result = policy_check(
+                service,
+                request,
+                registry=load_policy_registry(project_root_for_model(args.model)),
+            )
         except (OSError, ValueError) as error:
             parser.error(str(error))
         print(json.dumps(result, indent=2))

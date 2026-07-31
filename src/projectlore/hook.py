@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from projectlore.loader import discover_model
+from projectlore.loader import discover_model, project_root_for_model
 from projectlore.policy import (
     PolicyRequest,
     load_policy_registry,
@@ -55,7 +55,7 @@ def main() -> int:
         result = policy_check(
             service,
             request,
-            registry=load_policy_registry(cwd),
+            registry=load_policy_registry(project_root_for_model(model_path)),
             scope_obtained_via="provided_snapshot",
         )
     except (json.JSONDecodeError, OSError, ValueError) as error:
@@ -134,6 +134,9 @@ def _confined_path(root: Path, raw_path: str) -> Path:
 def _model_setting(cwd: Path) -> Path:
     value = os.environ.get("PROJECTLORE_MODEL")
     if value:
+        configured = Path(value)
+        if configured.is_absolute():
+            return configured.resolve(strict=True)
         return _confined_path(cwd, value)
     return discover_model(cwd)
 

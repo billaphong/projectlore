@@ -21,6 +21,7 @@ migration policy, not authorization to change a payload in place.
 | Canonical workflow target | `projectlore-workflow-target/1.0.0` | Provider-neutral persisted identity contract | Binds canonical project ID, root-relative model entrypoint, provider, scope, and optional container. It does not reinterpret `scope-target/0.1.0`. |
 | Canonical workflow observation | `projectlore-workflow-observation/1.0.0` | Provider-neutral context contract | Repeats target identity, target digest, content digest, timestamps, and immutable declared/observed assurance. |
 | Canonical workflow receipt | `projectlore-workflow-receipt/1.0.0` | Provider-neutral evidence contract | Binds target, observation, model digest, assurance, and evaluation freshness. Legacy receipt conversion is explicit. |
+| Canonical policy plan | `projectlore-policy-plan/1.0.0` | Immutable evaluation contract | Freezes facts, binding snapshots, context requirements, model/registry/target identity, and complete-plan digest before provider resolution. |
 
 Other receipts and observations are independently versioned as documented in
 `versioning-and-migrations.md`; they are outside the workflow naming migration

@@ -11,6 +11,7 @@ from projectlore.models import (
     IntegrationManifest,
     ProjectKnowledgeModel,
 )
+from projectlore.policy import PlannedPolicyResult, PolicyEvaluationPlan
 from projectlore.scope import ScopeReceipt
 from projectlore.workflow import (
     DeclaredWorkflowContext,
@@ -37,6 +38,8 @@ def render_json_schema() -> str:
         WorkflowReceipt,
         DeclaredWorkflowContext,
         ObservedWorkflowContext,
+        PolicyEvaluationPlan,
+        PlannedPolicyResult,
     ):
         contract_schema = contract.model_json_schema(
             ref_template="#/$defs/{model}",
@@ -64,6 +67,8 @@ def render_json_schema() -> str:
         "WorkflowReceipt",
         "DeclaredWorkflowContext",
         "ObservedWorkflowContext",
+        "PolicyEvaluationPlan",
+        "PlannedPolicyResult",
     ]
     return json.dumps(schema, indent=2, sort_keys=True) + "\n"
 

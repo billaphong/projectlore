@@ -142,6 +142,17 @@ diagnostic prose may improve without breaking automation.
 ## Enforcement and trust
 
 Policy results are `pass`, `fail`, `not_applicable`, or `indeterminate`.
+Policy evaluation is two-stage. `plan_policy` freezes normalized facts,
+applicable binding snapshots, context requirements, model/registry/target
+digests, and a digest of the complete immutable plan. Optional workflow context
+is resolved at most once from those declared requirements; `evaluate_policy`
+accepts no replacement facts or registry and rejects model or target drift.
+Timeless bindings continue independently when context is missing or broken.
+Aggregate precedence is `fail` over `indeterminate` over `pass` over
+`not_applicable`, with one deterministic finding per applicable binding.
+Canonical findings attach a workflow receipt only when that binding consumed
+context. The frozen tools `0.2.0` compatibility envelope retains its historical
+result-level receipt whenever a legacy snapshot was supplied.
 ProjectLore distinguishes availability, active hooks, local passes, CI passes,
 and verified protected enforcement. It never describes a bypassable local hook
 or ordinary CI run as non-bypassable repository protection.

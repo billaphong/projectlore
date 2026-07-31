@@ -133,16 +133,18 @@ def test_hook_loads_project_registry_and_blocks_violation(
         facts={"discount_rate": "0.40"},
         scope=_scope(),
     )
+    nested = tmp_path / "nested"
+    nested.mkdir()
     event = {
-        "cwd": str(tmp_path),
+        "cwd": str(nested),
         "tool_name": "Write",
         "tool_input": {
-            "file_path": str(tmp_path / "change.projectlore-policy.json"),
+            "file_path": str(nested / "change.projectlore-policy.json"),
             "content": request.model_dump_json(),
         },
     }
     environment = dict(os.environ)
-    environment["PROJECTLORE_MODEL"] = "projectlore.yaml"
+    environment["PROJECTLORE_MODEL"] = str(model)
 
     result = subprocess.run(
         [sys.executable, "-m", "projectlore.hook"],
