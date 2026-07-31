@@ -25,6 +25,11 @@ from projectlore.source_gate import (
     source_gate_exit_code,
     write_source_gate_evidence,
 )
+from projectlore.workflow import WorkflowTarget
+from projectlore.workflow_state import (
+    apply_local_declaration,
+    preview_local_declaration,
+)
 
 ROOT = Path(__file__).parents[1]
 MODEL = ROOT / "examples" / "sienna.campaign-authority.project.yaml"
@@ -252,6 +257,41 @@ def test_scope_hook_is_noop_without_target_and_advisory_without_token(
     assert no_token.returncode == 0
     assert "FRAIMED_API_TOKEN is required" in no_token.stderr
     assert not (tmp_path / ".projectlore" / "scope.json").exists()
+
+    apply_local_declaration(
+        tmp_path,
+        preview_local_declaration(
+            tmp_path,
+            WorkflowTarget(
+                target_version="projectlore-workflow-target/1.0.0",
+                project_id="lore:test/project",
+                model_entrypoint="projectlore.yaml",
+                provider_id="local",
+                scope_id="local-work",
+                container_id=None,
+            ),
+            title="Local",
+            status="active",
+        ),
+    )
+    configure_scope_target(
+        tmp_path,
+        frame_id="hidden-frame",
+        space_id="hidden-space",
+    )
+    environment["FRAIMED_API_TOKEN"] = "must-not-be-used"
+    canonical_wins = subprocess.run(
+        [sys.executable, "-m", "projectlore.scope_hook"],
+        input=event,
+        text=True,
+        capture_output=True,
+        env=environment,
+        timeout=5,
+        check=False,
+    )
+    assert canonical_wins.returncode == 0
+    assert canonical_wins.stdout == ""
+    assert canonical_wins.stderr == ""
 
 
 def test_source_gate_emits_scoped_pass_and_fail_evidence(tmp_path: Path) -> None:

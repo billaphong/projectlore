@@ -11,6 +11,7 @@ from projectlore.scope_cache import (
     load_scope_target,
     refresh_scope_from_environment,
 )
+from projectlore.workflow_state import CONTEXT_PATH, load_workflow_context
 
 MAX_INPUT_BYTES = 65_536
 
@@ -27,6 +28,9 @@ def main() -> int:
         if not isinstance(cwd_value, str) or not cwd_value:
             raise ValueError("Scope hook field 'cwd' is required.")
         root = Path(cwd_value).resolve(strict=True)
+        if (root / CONTEXT_PATH).is_file():
+            load_workflow_context(root)
+            return 0
         if load_scope_target(root, required=False) is None:
             return 0
         path, snapshot = asyncio.run(refresh_scope_from_environment(root))

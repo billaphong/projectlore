@@ -91,6 +91,14 @@ provider must demonstrate the need before ProjectLore grows a plugin registry.
 Frozen `0.1.x` scope payloads remain outside the kernel and cross the boundary
 only through explicit compatibility adapters.
 
+Local context is a durable operator declaration stored under `.projectlore/`.
+It remains valid by content identity until explicitly replaced, cleared, or its
+optional `expires_at` passes; it does not inherit network-observation age
+semantics. External context is an observation and remains subject to its
+configured maximum age. Local writes and clears are preview-first, digest-bound,
+and atomic, and switching to local context removes an external refresh target
+only during the reviewed apply operation.
+
 ### CodeGraph composition
 
 The optional CodeGraph adapter sits behind `AdapterRegistry` and accepts only a

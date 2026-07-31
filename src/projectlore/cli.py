@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -15,6 +16,7 @@ from projectlore.assurance_report import IntegrationEvidence, assess_assurance
 from projectlore.doctor import run_doctor
 from projectlore.evaluation import evaluate_once
 from projectlore.integration import apply_instruction_previews, instruction_previews
+from projectlore.loader import discover_model
 from projectlore.mcp_server import create_server
 from projectlore.onboarding import (
     INIT_VERSION,
@@ -24,7 +26,6 @@ from projectlore.onboarding import (
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.scope_cache import (
-    configure_local_scope,
     configure_scope_target,
     load_scope_target,
     refresh_scope_from_environment,
@@ -41,6 +42,16 @@ from projectlore.source_policy import (
 )
 from projectlore.trust import issue_receipt, write_receipt
 from projectlore.validation import load_document, validate_path
+from projectlore.workflow import WorkflowTarget
+from projectlore.workflow_state import (
+    apply_clear,
+    apply_legacy_local_migration,
+    apply_local_declaration,
+    load_workflow_context,
+    preview_clear,
+    preview_legacy_local_migration,
+    preview_local_declaration,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -183,7 +194,22 @@ def build_parser() -> argparse.ArgumentParser:
     scope_local.add_argument("scope_id")
     scope_local.add_argument("--title", required=True)
     scope_local.add_argument("--status", default="in_progress")
+    scope_local.add_argument("--expires-at", type=datetime.fromisoformat)
+    scope_local.add_argument("--apply", action="store_true")
     scope_local.add_argument("--root", type=Path, default=Path.cwd())
+    scope_clear = scope_subparsers.add_parser(
+        "clear",
+        help="Preview removal of exact-digest workflow state.",
+    )
+    scope_clear.add_argument("--target-digest", required=True)
+    scope_clear.add_argument("--apply", action="store_true")
+    scope_clear.add_argument("--root", type=Path, default=Path.cwd())
+    scope_migrate = scope_subparsers.add_parser(
+        "migrate",
+        help="Preview migration of a legacy local declaration.",
+    )
+    scope_migrate.add_argument("--apply", action="store_true")
+    scope_migrate.add_argument("--root", type=Path, default=Path.cwd())
 
     source_gate = subparsers.add_parser(
         "source-gate",
@@ -414,17 +440,82 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "scope": snapshot.model_dump(mode="json"),
                 }
             elif args.scope_command == "local":
-                path, local_scope_snapshot = configure_local_scope(
-                    root,
+                model_path = discover_model(root)
+                service = ModelService(model_path)
+                workflow_target = WorkflowTarget(
+                    target_version="projectlore-workflow-target/1.0.0",
+                    project_id=service.model.id,
+                    model_entrypoint=model_path.relative_to(root).as_posix(),
+                    provider_id="local",
                     scope_id=args.scope_id,
+                    container_id=None,
+                )
+                preview = preview_local_declaration(
+                    root,
+                    workflow_target,
                     title=args.title,
                     status=args.status,
+                    expires_at=args.expires_at,
+                )
+                context = (
+                    apply_local_declaration(root, preview) if args.apply else None
                 )
                 result = {
-                    "configured": True,
-                    "path": str(path),
-                    "scope": local_scope_snapshot.model_dump(mode="json"),
+                    "applied": args.apply,
+                    "path": str(preview.path),
+                    "before_digest": preview.before_digest,
+                    "after_digest": preview.after_digest,
+                    "target_digest": preview.target_digest,
+                    "removes_external_target": preview.removes_external_target,
+                    "context": (
+                        context.model_dump(mode="json")
+                        if context is not None
+                        else json.loads(preview.content or "null")
+                    ),
                     "network_required": False,
+                }
+            elif args.scope_command == "clear":
+                preview = preview_clear(root, target_digest=args.target_digest)
+                if args.apply:
+                    apply_clear(root, preview)
+                result = {
+                    "applied": args.apply,
+                    "path": str(preview.path),
+                    "before_digest": preview.before_digest,
+                    "after_digest": None,
+                    "target_digest": preview.target_digest,
+                    "removes_external_target": preview.removes_external_target,
+                }
+            elif args.scope_command == "migrate":
+                legacy = load_scope_snapshot(root)
+                assert legacy is not None
+                model_path = discover_model(root)
+                service = ModelService(model_path)
+                workflow_target = WorkflowTarget(
+                    target_version="projectlore-workflow-target/1.0.0",
+                    project_id=service.model.id,
+                    model_entrypoint=model_path.relative_to(root).as_posix(),
+                    provider_id="local",
+                    scope_id=legacy.frame_id,
+                    container_id=None,
+                )
+                preview = preview_legacy_local_migration(root, workflow_target)
+                migrated = (
+                    apply_legacy_local_migration(root, preview)
+                    if args.apply
+                    else None
+                )
+                result = {
+                    "applied": args.apply,
+                    "path": str(preview.path),
+                    "before_digest": preview.before_digest,
+                    "after_digest": preview.after_digest,
+                    "target_digest": preview.target_digest,
+                    "context": (
+                        migrated.model_dump(mode="json")
+                        if migrated is not None
+                        else json.loads(preview.content or "null")
+                    ),
                 }
             else:
                 scope_target = load_scope_target(root, required=False)
@@ -435,6 +526,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     status_scope_snapshot = None
                     scope_error = str(error)
                 result = {
+                    "context": None,
                     "target": (
                         scope_target.model_dump(mode="json")
                         if scope_target is not None
@@ -447,6 +539,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     ),
                     "scope_error": scope_error,
                 }
+                try:
+                    result["context"] = load_workflow_context(root).model_dump(
+                        mode="json"
+                    )
+                except ValueError as error:
+                    if result["scope_error"] is None:
+                        result["scope_error"] = str(error)
         except (OSError, RuntimeError, TimeoutError, ValueError) as error:
             parser.error(str(error))
         print(json.dumps(result, indent=2))

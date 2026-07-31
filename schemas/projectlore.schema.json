@@ -277,6 +277,115 @@
       "title": "ContextProfile",
       "type": "object"
     },
+    "DeclaredWorkflowContext": {
+      "additionalProperties": false,
+      "description": "Durable local operator declaration; wall-clock age is not freshness.",
+      "properties": {
+        "authority_ref": {
+          "pattern": "^local://",
+          "title": "Authority Ref",
+          "type": "string"
+        },
+        "container_id": {
+          "default": null,
+          "title": "Container Id",
+          "type": "null"
+        },
+        "content_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "context_kind": {
+          "const": "declared",
+          "title": "Context Kind",
+          "type": "string"
+        },
+        "context_version": {
+          "const": "projectlore-workflow-context/1.0.0",
+          "title": "Context Version",
+          "type": "string"
+        },
+        "declared_at": {
+          "format": "date-time",
+          "title": "Declared At",
+          "type": "string"
+        },
+        "declared_by": {
+          "const": "operator",
+          "default": "operator",
+          "title": "Declared By",
+          "type": "string"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expires At"
+        },
+        "model_entrypoint": {
+          "title": "Model Entrypoint",
+          "type": "string"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "const": "local",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "status": {
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "target_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Target Digest",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "validation_open": {
+          "minimum": 0,
+          "title": "Validation Open",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "context_version",
+        "context_kind",
+        "project_id",
+        "model_entrypoint",
+        "provider_id",
+        "scope_id",
+        "target_digest",
+        "title",
+        "status",
+        "validation_open",
+        "declared_at",
+        "authority_ref",
+        "content_digest"
+      ],
+      "title": "DeclaredWorkflowContext",
+      "type": "object"
+    },
     "Domain": {
       "additionalProperties": false,
       "properties": {
@@ -474,6 +583,38 @@
       ],
       "title": "LifecycleStatus",
       "type": "string"
+    },
+    "ObservedWorkflowContext": {
+      "additionalProperties": false,
+      "description": "External observation with explicit age-based freshness.",
+      "properties": {
+        "context_kind": {
+          "const": "observed",
+          "title": "Context Kind",
+          "type": "string"
+        },
+        "context_version": {
+          "const": "projectlore-workflow-context/1.0.0",
+          "title": "Context Version",
+          "type": "string"
+        },
+        "maximum_age_seconds": {
+          "minimum": 1,
+          "title": "Maximum Age Seconds",
+          "type": "integer"
+        },
+        "observation": {
+          "$ref": "#/$defs/WorkflowObservation"
+        }
+      },
+      "required": [
+        "context_version",
+        "context_kind",
+        "observation",
+        "maximum_age_seconds"
+      ],
+      "title": "ObservedWorkflowContext",
+      "type": "object"
     },
     "Relationship": {
       "additionalProperties": false,
@@ -1416,6 +1557,8 @@
     "ScopeReceipt",
     "WorkflowTarget",
     "WorkflowObservation",
-    "WorkflowReceipt"
+    "WorkflowReceipt",
+    "DeclaredWorkflowContext",
+    "ObservedWorkflowContext"
   ]
 }

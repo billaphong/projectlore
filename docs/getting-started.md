@@ -94,11 +94,37 @@ For standalone task context:
 
 ```shell
 lore scope local task-123 --title "Review pricing change"
+# Review the preview, then write the exact declaration:
+lore scope local task-123 --title "Review pricing change" --apply
 lore scope status
 ```
 
-This built-in local provider requires no account or network. To opt into the
+The declaration is Git-ignored, remains valid until replaced or explicitly
+expired, and does not become stale merely because five minutes passed. Clear it
+with a reviewed digest-bound operation:
+
+```shell
+lore scope clear --target-digest sha256:...
+lore scope clear --target-digest sha256:... --apply
+```
+
+This built-in local provider requires no account or network. Applying it also
+removes any external refresh target so a later SessionStart cannot silently
+overwrite it. To opt into the
 Fraimed adapter, set the non-secret Frame and Space identity:
+
+Existing `0.1.x` local scope files migrate through an explicit preview/apply
+boundary:
+
+```shell
+lore scope migrate
+lore scope migrate --apply
+```
+
+Migration validates the old payload, constructs and validates the new
+declaration, and atomically activates it. Failed or interrupted migration keeps
+the previous valid representation; rerunning a completed migration is
+idempotent. External observations cannot be downgraded into local declarations.
 
 ```shell
 lore scope target FRAME_ID SPACE_ID

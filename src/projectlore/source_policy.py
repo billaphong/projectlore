@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import os
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
@@ -13,6 +14,13 @@ from pydantic import Field, TypeAdapter, ValidationError
 from projectlore.models import StrictModel
 from projectlore.scope import ScopeSnapshot
 from projectlore.scope_cache import load_scope_target
+from projectlore.workflow import (
+    DeclaredWorkflowContext,
+    LocalScopeProvider,
+    WorkflowTarget,
+)
+from projectlore.workflow_compat import observation_to_legacy_snapshot
+from projectlore.workflow_state import CONTEXT_PATH, load_workflow_context
 
 SOURCE_BINDINGS_PATH = Path(".projectlore/source-policy-bindings.json")
 SCOPE_SNAPSHOT_PATH = Path(".projectlore/scope.json")
@@ -71,6 +79,26 @@ def load_scope_snapshot(
     root: Path, *, required: bool = True
 ) -> ScopeSnapshot | None:
     """Load optional provider-neutral workflow scope state."""
+    canonical_path = _configured_path(root, CONTEXT_PATH)
+    if canonical_path.is_file():
+        context = load_workflow_context(root)
+        if not context.valid_at(datetime.now(UTC)):
+            raise ValueError("Workflow context has expired or become stale.")
+        if isinstance(context, DeclaredWorkflowContext):
+            workflow_target = WorkflowTarget(
+                target_version="projectlore-workflow-target/1.0.0",
+                project_id=context.project_id,
+                model_entrypoint=context.model_entrypoint,
+                provider_id=context.provider_id,
+                scope_id=context.scope_id,
+                container_id=context.container_id,
+            )
+            observation = LocalScopeProvider(context).current_observation(
+                workflow_target
+            )
+        else:
+            observation = context.observation
+        return observation_to_legacy_snapshot(observation)
     path = _configured_path(root, SCOPE_SNAPSHOT_PATH)
     if not path.is_file():
         if required:

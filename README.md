@@ -36,7 +36,8 @@ separately authorizes and completes publication.
 
 ProjectLore works without Fraimed or any hosted workflow service. Deterministic
 rules default to standalone evaluation. Optional local workflow context can be
-set with `lore scope local`; an explicit `lore scope target FRAME_ID SPACE_ID`
+previewed and set with `lore scope local ... --apply`; an explicit
+`lore scope target FRAME_ID SPACE_ID`
 instead enables the Fraimed adapter. Generated SessionStart hooks refresh only
 that configured external target. Configured checked-out source can be evaluated with
 `lore source-gate projectlore.yaml --all-configured`; its local or CI evidence

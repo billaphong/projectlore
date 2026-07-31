@@ -46,6 +46,9 @@ The provider-neutral `1.0.0` contracts are additive new contract families, not
 new meanings assigned to `scope-target/0.1.0`, `scope-receipt/0.1.0`, or the
 unversioned legacy snapshot. `projectlore.workflow_compat` is the only supported
 normalization boundary between those families.
+Legacy local snapshots migrate only through `lore scope migrate` followed by
+the exact `--apply` operation. The migration is idempotent and refuses corrupt,
+oversized, linked, mismatched, or external-provider state.
 
 ## Target identity and repository movement
 

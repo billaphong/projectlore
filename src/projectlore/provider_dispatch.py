@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 from projectlore.fraimed import FraimedWorkflowProvider
 from projectlore.workflow import (
+    DeclaredWorkflowContext,
     LocalScopeProvider,
     WorkflowAuthenticationRequired,
     WorkflowObservation,
@@ -17,7 +18,7 @@ from projectlore.workflow import (
 def build_workflow_provider(
     provider_id: str,
     *,
-    local_observation: WorkflowObservation | None = None,
+    local_observation: DeclaredWorkflowContext | WorkflowObservation | None = None,
     fraimed_url: str | None = None,
     fraimed_token: str | None = None,
 ) -> WorkflowScopeProvider:
@@ -33,7 +34,9 @@ def build_workflow_provider(
     return builder()
 
 
-def _local(observation: WorkflowObservation | None) -> WorkflowScopeProvider:
+def _local(
+    observation: DeclaredWorkflowContext | WorkflowObservation | None,
+) -> WorkflowScopeProvider:
     if observation is None:
         raise WorkflowUnavailable()
     return LocalScopeProvider(observation)
