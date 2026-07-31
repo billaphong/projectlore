@@ -149,6 +149,18 @@ source action remains fail-closed if its binding explicitly declares
 
 ## Gate configured checked-out source
 
+To remove ProjectLore-generated MCP entries, hooks, managed instruction blocks,
+trust receipts, and disposable workflow state while preserving client-owned
+content, review and apply the removal preview:
+
+```shell
+lore remove
+lore remove --apply
+```
+
+Canonical model YAML is intentionally retained and must be removed through the
+repository's normal review workflow if it is no longer wanted.
+
 When `.projectlore/source-policy-bindings.json` maps supported Python source to
 facts, evaluate the actual checkout before commit:
 

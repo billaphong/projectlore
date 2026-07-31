@@ -1,0 +1,18 @@
+{
+  "disposition_version": "projectlore-security-disposition/1.0.0",
+  "dependency_audit": {
+    "unresolved_vulnerabilities": 0,
+    "status": "pass"
+  },
+  "static_analysis": {
+    "high": 0,
+    "medium": 0,
+    "low": 18,
+    "status": "pass_with_reviewed_low_findings",
+    "disposition": "Low findings are expected assertions, fixed-command subprocess boundaries, constant non-secret identifiers, or imports needed by the hardened process runner. The checker registry pins executables and arguments, rejects shells, confines paths, sanitizes environments, and requires a deny-network sandbox for external execution. No blanket suppression was added."
+  },
+  "license_inventory": {
+    "status": "generated_for_review",
+    "owner_review_required_before_publication": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "manifest_version": "projectlore-security-tools/1.0.0",
+  "tools": {
+    "pip-audit": "2.10.1",
+    "bandit": "1.9.4",
+    "pip-licenses": "5.5.5"
+  },
+  "commands": {
+    "dependency": "python -m pip_audit . --format json --output docs/security/dependency-audit.json",
+    "static": "python -m bandit -r src/projectlore -f json -o docs/security/static-analysis.json",
+    "licenses": "python -m piplicenses --format=json --with-urls --output-file=docs/security/licenses.json"
+  }
+}

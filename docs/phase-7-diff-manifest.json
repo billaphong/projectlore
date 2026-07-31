@@ -1,0 +1,12 @@
+{
+  "manifest_version": "projectlore-diff-manifest/1.0.0",
+  "base": "9170ef0",
+  "commit_groups": [
+    {"commit": "30e7ef0", "purpose": "durable local workflow declarations"},
+    {"commit": "44cc88c", "purpose": "immutable two-stage policy evaluation"},
+    {"commit": "dfcd1c1", "purpose": "provider-neutral product surfaces"},
+    {"commit": "ad087d0", "purpose": "provider conformance and adversarial hardening"}
+  ],
+  "preserved_unrelated_paths": ["docs/maintain-projectlore-model-skill.md"],
+  "hosted_mutations_performed": false
+}

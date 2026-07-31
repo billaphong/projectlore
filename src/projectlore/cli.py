@@ -24,6 +24,7 @@ from projectlore.onboarding import (
     initialization_previews,
 )
 from projectlore.policy import PolicyRequest, load_policy_registry, policy_check
+from projectlore.removal import apply_removal, removal_previews
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.scope_cache import (
     load_scope_target,
@@ -142,6 +143,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Preview managed AGENTS.md and CLAUDE.md instruction blocks.",
     )
     integrate.add_argument("--apply", action="store_true")
+
+    remove = subparsers.add_parser(
+        "remove",
+        help="Preview removal of generated integration and disposable state.",
+    )
+    remove.add_argument("--apply", action="store_true")
 
     integration = subparsers.add_parser(
         "integration",
@@ -382,6 +389,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         if args.apply:
             apply_instruction_previews(integration_previews)
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "remove":
+        previews = removal_previews(Path.cwd())
+        result = {
+            "preview_version": "projectlore-removal-preview/1.0.0",
+            "applied": bool(args.apply),
+            "files": [
+                {
+                    "path": str(item.path),
+                    "before_digest": item.before_digest,
+                    "delete": item.delete,
+                    "content": item.content,
+                }
+                for item in previews
+            ],
+        }
+        if args.apply:
+            apply_removal(previews)
         print(json.dumps(result, indent=2))
         return 0
 
