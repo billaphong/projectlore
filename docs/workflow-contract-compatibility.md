@@ -18,6 +18,9 @@ migration policy, not authorization to change a payload in place.
 | Source-gate evidence | `projectlore-source-gate/0.1.0` | Persisted evidence | Any new required identity, assurance, or target-binding field requires a new evidence version. |
 | Agent lifecycle event | `projectlore-agent-event/0.1.0` | Client integration contract | Provider-neutral lifecycle changes must retain an adapter or increment this contract. |
 | Policy registry | Unversioned bounded JSON | Operator-authored configuration | A versioned registry envelope is required before changing binding meaning or required fields. |
+| Canonical workflow target | `projectlore-workflow-target/1.0.0` | Provider-neutral persisted identity contract | Binds canonical project ID, root-relative model entrypoint, provider, scope, and optional container. It does not reinterpret `scope-target/0.1.0`. |
+| Canonical workflow observation | `projectlore-workflow-observation/1.0.0` | Provider-neutral context contract | Repeats target identity, target digest, content digest, timestamps, and immutable declared/observed assurance. |
+| Canonical workflow receipt | `projectlore-workflow-receipt/1.0.0` | Provider-neutral evidence contract | Binds target, observation, model digest, assurance, and evaluation freshness. Legacy receipt conversion is explicit. |
 
 Other receipts and observations are independently versioned as documented in
 `versioning-and-migrations.md`; they are outside the workflow naming migration
@@ -38,6 +41,11 @@ Legacy `frame_id`, `frame_title`, and `frame_status` fields and Fraimed receipt
 values remain readable until a chosen major version explicitly removes them.
 Writing a future canonical payload does not imply that legacy names remain the
 canonical internal representation.
+
+The provider-neutral `1.0.0` contracts are additive new contract families, not
+new meanings assigned to `scope-target/0.1.0`, `scope-receipt/0.1.0`, or the
+unversioned legacy snapshot. `projectlore.workflow_compat` is the only supported
+normalization boundary between those families.
 
 ## Target identity and repository movement
 

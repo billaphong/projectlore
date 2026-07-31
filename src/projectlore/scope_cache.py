@@ -6,10 +6,11 @@ import os
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 from pydantic import Field, ValidationError
 
-from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
+from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.models import StrictModel
 from projectlore.scope import ScopeSnapshot
 
@@ -17,6 +18,12 @@ SCOPE_TARGET_PATH = Path(".projectlore/scope-target.json")
 SCOPE_SNAPSHOT_PATH = Path(".projectlore/scope.json")
 MAX_SCOPE_STATE_BYTES = 16 * 1024
 DEFAULT_FRAIMED_MCP_URL = "https://www.fraimed.ai/api/mcp"
+
+
+class LegacyScopeAuthority(Protocol):
+    async def current_scope(
+        self, frame_id: str, space_id: str | None = None
+    ) -> ScopeSnapshot: ...
 
 
 class ScopeTarget(StrictModel):
@@ -62,7 +69,7 @@ def load_scope_target(root: Path, *, required: bool = True) -> ScopeTarget | Non
 
 async def refresh_scope(
     root: Path,
-    authority: ScopeAuthority,
+    authority: LegacyScopeAuthority,
 ) -> tuple[Path, ScopeSnapshot]:
     """Fetch target scope and atomically activate it only after validation."""
     target = load_scope_target(root)

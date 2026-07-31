@@ -14,8 +14,9 @@ from typing import Any
 
 import yaml
 
-from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
+from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.policy import PolicyRequest, policy_check
+from projectlore.scope_cache import LegacyScopeAuthority
 from projectlore.service import ModelService
 
 
@@ -24,7 +25,7 @@ async def evaluate_once(
     frame_id: str,
     space_id: str,
     output_path: Path,
-    scope_authority: ScopeAuthority | None = None,
+    scope_authority: LegacyScopeAuthority | None = None,
 ) -> dict[str, Any]:
     if output_path.exists():
         raise FileExistsError(

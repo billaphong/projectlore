@@ -12,10 +12,10 @@ from typing import Any
 import yaml
 
 from projectlore.cli import main
-from projectlore.fraimed import ScopeAuthority
 from projectlore.mcp_server import create_server
 from projectlore.policy import PolicyRequest, policy_check
 from projectlore.scope import ScopeSnapshot
+from projectlore.scope_cache import LegacyScopeAuthority
 from projectlore.service import CONTRACT_VERSION, ModelService
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -251,8 +251,10 @@ def _run_hook(event: dict[str, Any]) -> subprocess.CompletedProcess[str]:
     )
 
 
-class StaticScopeAuthority(ScopeAuthority):
-    async def current_scope(self, frame_id: str, space_id: str) -> ScopeSnapshot:
+class StaticScopeAuthority(LegacyScopeAuthority):
+    async def current_scope(
+        self, frame_id: str, space_id: str | None = None
+    ) -> ScopeSnapshot:
         assert frame_id
         assert space_id
         return scope()

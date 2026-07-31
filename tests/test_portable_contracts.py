@@ -44,6 +44,9 @@ def test_portable_schema_names_every_public_contract() -> None:
         "ContextProfile",
         "IntegrationManifest",
         "ScopeReceipt",
+        "WorkflowTarget",
+        "WorkflowObservation",
+        "WorkflowReceipt",
     }
     assert (
         set(schema["x-projectlore-public-contracts"]) - {"ProjectKnowledgeModel"}

@@ -1028,6 +1028,285 @@
       ],
       "title": "TrustLabel",
       "type": "string"
+    },
+    "WorkflowObservation": {
+      "additionalProperties": false,
+      "description": "Bounded provider response bound to its configured target.",
+      "properties": {
+        "assurance": {
+          "enum": [
+            "declared",
+            "observed"
+          ],
+          "title": "Assurance",
+          "type": "string"
+        },
+        "authority_ref": {
+          "pattern": "^[a-z][a-z0-9+.-]*://",
+          "title": "Authority Ref",
+          "type": "string"
+        },
+        "container_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Container Id"
+        },
+        "content_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Content Digest",
+          "type": "string"
+        },
+        "model_entrypoint": {
+          "title": "Model Entrypoint",
+          "type": "string"
+        },
+        "observation_version": {
+          "const": "projectlore-workflow-observation/1.0.0",
+          "title": "Observation Version",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "provider_revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Revision"
+        },
+        "scope_id": {
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "status": {
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "target_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Target Digest",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "validation_open": {
+          "minimum": 0,
+          "title": "Validation Open",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "observation_version",
+        "project_id",
+        "model_entrypoint",
+        "provider_id",
+        "scope_id",
+        "container_id",
+        "target_digest",
+        "assurance",
+        "title",
+        "status",
+        "validation_open",
+        "observed_at",
+        "authority_ref",
+        "content_digest"
+      ],
+      "title": "WorkflowObservation",
+      "type": "object"
+    },
+    "WorkflowReceipt": {
+      "additionalProperties": false,
+      "description": "Evidence that evaluation consumed one target-bound observation.",
+      "properties": {
+        "age_seconds": {
+          "minimum": 0,
+          "title": "Age Seconds",
+          "type": "number"
+        },
+        "assurance": {
+          "enum": [
+            "declared",
+            "observed"
+          ],
+          "title": "Assurance",
+          "type": "string"
+        },
+        "authority_ref": {
+          "pattern": "^[a-z][a-z0-9+.-]*://",
+          "title": "Authority Ref",
+          "type": "string"
+        },
+        "container_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Container Id"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "title": "Evaluated At",
+          "type": "string"
+        },
+        "fresh": {
+          "title": "Fresh",
+          "type": "boolean"
+        },
+        "maximum_age_seconds": {
+          "minimum": 1,
+          "title": "Maximum Age Seconds",
+          "type": "integer"
+        },
+        "model_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Model Digest",
+          "type": "string"
+        },
+        "model_entrypoint": {
+          "title": "Model Entrypoint",
+          "type": "string"
+        },
+        "observation_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Observation Digest",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "project_id": {
+          "title": "Project Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "receipt_version": {
+          "const": "projectlore-workflow-receipt/1.0.0",
+          "title": "Receipt Version",
+          "type": "string"
+        },
+        "scope_id": {
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "target_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Target Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_version",
+        "project_id",
+        "model_entrypoint",
+        "model_digest",
+        "provider_id",
+        "scope_id",
+        "container_id",
+        "target_digest",
+        "observation_digest",
+        "assurance",
+        "authority_ref",
+        "observed_at",
+        "evaluated_at",
+        "age_seconds",
+        "fresh",
+        "maximum_age_seconds"
+      ],
+      "title": "WorkflowReceipt",
+      "type": "object"
+    },
+    "WorkflowTarget": {
+      "additionalProperties": false,
+      "description": "Operator-configured identity for one provider lookup.",
+      "properties": {
+        "container_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Id"
+        },
+        "model_entrypoint": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Model Entrypoint",
+          "type": "string"
+        },
+        "project_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Project Id",
+          "type": "string"
+        },
+        "provider_id": {
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+          "title": "Provider Id",
+          "type": "string"
+        },
+        "scope_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Scope Id",
+          "type": "string"
+        },
+        "target_version": {
+          "const": "projectlore-workflow-target/1.0.0",
+          "title": "Target Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_version",
+        "project_id",
+        "model_entrypoint",
+        "provider_id",
+        "scope_id"
+      ],
+      "title": "WorkflowTarget",
+      "type": "object"
     }
   },
   "$id": "https://projectlore.ai/schema/projectlore.schema.json",
@@ -1134,6 +1413,9 @@
     "CheckerBinding",
     "ContextProfile",
     "IntegrationManifest",
-    "ScopeReceipt"
+    "ScopeReceipt",
+    "WorkflowTarget",
+    "WorkflowObservation",
+    "WorkflowReceipt"
   ]
 }

@@ -41,3 +41,7 @@ evidence, and lifecycle events are inventoried independently in
 [`workflow-contract-compatibility.md`](workflow-contract-compatibility.md).
 Legacy Fraimed-shaped payloads remain readable according to that matrix; a
 provider-neutral redesign must not reuse an unchanged version identifier.
+The canonical replacement families begin independently at
+`projectlore-workflow-target/1.0.0`,
+`projectlore-workflow-observation/1.0.0`, and
+`projectlore-workflow-receipt/1.0.0`.

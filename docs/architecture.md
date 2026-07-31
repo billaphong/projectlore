@@ -72,6 +72,25 @@ offline with no scope receipt. Only an applicable workflow-scoped rule becomes
 indeterminate when current context is missing or stale. This keeps provider
 failure localized instead of disabling project knowledge or unrelated policy.
 
+### Provider-neutral workflow kernel
+
+The canonical workflow boundary is `projectlore.workflow`. A `WorkflowTarget`
+binds a provider request to the canonical project-model ID, root-relative model
+entrypoint, provider, scope, and optional container. A returned
+`WorkflowObservation` repeats that identity, binds the target and observed
+content by digest, and states whether its assurance is operator `declared` or
+externally `observed`. Configuration cannot promote declared context to
+observed context. `WorkflowReceipt` additionally binds the model digest and
+evaluation time so evidence cannot be replayed across models or targets.
+
+Provider failures use stable, sanitized machine codes and bounded public
+messages. Provider adapters retain their original exception only as an internal
+cause and do not expose credentials, URLs, response bodies, or exception text.
+The composition root deliberately supports only `local` and `fraimed`; another
+provider must demonstrate the need before ProjectLore grows a plugin registry.
+Frozen `0.1.x` scope payloads remain outside the kernel and cross the boundary
+only through explicit compatibility adapters.
+
 ### CodeGraph composition
 
 The optional CodeGraph adapter sits behind `AdapterRegistry` and accepts only a

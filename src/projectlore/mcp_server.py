@@ -8,11 +8,12 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
-from projectlore.fraimed import FraimedScopeAuthority, ScopeAuthority
+from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.policy import PolicyRequest, load_policy_registry
 from projectlore.policy import policy_check as evaluate_policy
 from projectlore.query import QueryService
 from projectlore.refresh import RefreshingModelService
+from projectlore.scope_cache import LegacyScopeAuthority
 
 MODEL_ENV = "PROJECTLORE_MODEL"
 FRAIMED_URL_ENV = "PROJECTLORE_FRAIMED_MCP_URL"
@@ -21,7 +22,7 @@ FRAIMED_TOKEN_ENV = "FRAIMED_API_TOKEN"
 
 def create_server(
     model_path: Path,
-    scope_authority: ScopeAuthority | None = None,
+    scope_authority: LegacyScopeAuthority | None = None,
 ) -> FastMCP:
     token = os.environ.get(FRAIMED_TOKEN_ENV, "")
     authority = scope_authority
