@@ -1,0 +1,17 @@
+{
+  "manifest_version": "projectlore-local-artifacts/1.0.0",
+  "status": "implementation_ready_not_published",
+  "version": "0.1.0a2",
+  "source_commit": "0b85d44e685074236a47162474ef916413140876",
+  "source_date_epoch_from_commit": true,
+  "artifacts": {
+    "projectlore-0.1.0a2-py3-none-any.whl": "4b8b139172677717ecd7dc252d9cea306ea41c8fb6b62e38ea37cbc1e0f225f9",
+    "projectlore-0.1.0a2.tar.gz": "21f9726301b1994178a934f5a712c4ea59c1dc1df9e0be6a2f1a3abf69dbe249"
+  },
+  "verification": {
+    "distribution_allowlist": "pass",
+    "fresh_offline_install": "pass",
+    "hosted_ci_matrix": "not_run_owner_gated",
+    "published": false
+  }
+}
