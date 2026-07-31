@@ -1492,6 +1492,7 @@
         "provider_revision": {
           "anyOf": [
             {
+              "maxLength": 256,
               "type": "string"
             },
             {
@@ -1506,6 +1507,7 @@
           "type": "string"
         },
         "status": {
+          "maxLength": 128,
           "minLength": 1,
           "title": "Status",
           "type": "string"
@@ -1516,6 +1518,7 @@
           "type": "string"
         },
         "title": {
+          "maxLength": 1024,
           "minLength": 1,
           "title": "Title",
           "type": "string"

@@ -59,12 +59,12 @@ class WorkflowObservation(StrictModel):
     container_id: str | None
     target_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     assurance: WorkflowAssurance
-    title: str = Field(min_length=1)
-    status: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=1024)
+    status: str = Field(min_length=1, max_length=128)
     validation_open: int = Field(ge=0)
     observed_at: datetime = Field(strict=False)
     authority_ref: str = Field(pattern=r"^[a-z][a-z0-9+.-]*://")
-    provider_revision: str | None = None
+    provider_revision: str | None = Field(default=None, max_length=256)
     content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
     @model_validator(mode="after")

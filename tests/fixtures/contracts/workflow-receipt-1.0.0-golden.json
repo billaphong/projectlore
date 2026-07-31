@@ -1,0 +1,18 @@
+{
+  "receipt_version": "projectlore-workflow-receipt/1.0.0",
+  "project_id": "lore:project/conformance",
+  "model_entrypoint": "projectlore.yaml",
+  "model_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "provider_id": "fake",
+  "scope_id": "work",
+  "container_id": "workspace",
+  "target_digest": "sha256:ff5243f5cc2beafa3aa3f62e0761b8cc44bffb3fe2766efb268aa882d766358c",
+  "observation_digest": "sha256:48a36e80723ad824317e85a4d4ecc93a09e114b6ba4280d7ed16dea6c4ef0921",
+  "assurance": "observed",
+  "authority_ref": "fake://scope/work",
+  "observed_at": "2026-07-31T00:00:00Z",
+  "evaluated_at": "2026-07-31T00:01:00Z",
+  "age_seconds": 60.0,
+  "fresh": true,
+  "maximum_age_seconds": 300
+}

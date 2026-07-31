@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -20,88 +21,52 @@ from projectlore.workflow import (
     WorkflowUnavailable,
     make_observation,
 )
+from projectlore.workflow_compat import observation_to_legacy_snapshot
 
 
 class FraimedScopeAuthority:
     """Compatibility adapter for legacy scope payloads."""
 
     def __init__(self, url: str, token: str, *, timeout_seconds: float = 10) -> None:
-        if not url.startswith("https://"):
-            raise ValueError("Fraimed MCP URL must use HTTPS.")
-        if not token:
-            raise ValueError("Fraimed API token is required.")
-        self._url = url
-        self._token = token
-        self._timeout_seconds = timeout_seconds
+        self._provider = FraimedWorkflowProvider(
+            url, token, timeout_seconds=timeout_seconds
+        )
 
     async def current_scope(
         self, frame_id: str, space_id: str | None = None
     ) -> ScopeSnapshot:
         if space_id is None:
-            raise ValueError("Fraimed workflow scope requires a Space ID.")
-        headers = {"Authorization": f"Bearer {self._token}"}
-        timeout = httpx.Timeout(self._timeout_seconds)
-        try:
-            async with (
-                httpx.AsyncClient(headers=headers, timeout=timeout) as client,
-                streamable_http_client(
-                    self._url,
-                    http_client=client,
-                ) as (read_stream, write_stream, _),
-                ClientSession(
-                    read_stream,
-                    write_stream,
-                    read_timeout_seconds=timedelta(
-                        seconds=self._timeout_seconds
-                    ),
-                ) as session,
-            ):
-                await session.initialize()
-                result = await session.call_tool(
-                    "get_frame_context",
-                    {"frameId": frame_id, "spaceId": space_id, "brief": True},
-                )
-        except Exception as error:
-            raise RuntimeError("Fraimed scope lookup failed.") from error
-        if result.isError:
-            raise RuntimeError("Fraimed rejected the scope lookup.")
-        documents = []
-        for block in result.content:
-            text = getattr(block, "text", None)
-            if isinstance(text, str):
-                try:
-                    documents.append(json.loads(text))
-                except json.JSONDecodeError:
-                    continue
-        context = next(
-            (item for item in documents if isinstance(item, dict) and "frame" in item),
-            None,
+            raise WorkflowTargetMismatch()
+        target = WorkflowTarget(
+            target_version="projectlore-workflow-target/1.0.0",
+            project_id="legacy:projectlore/compatibility",
+            model_entrypoint="legacy://scope-snapshot/0.1.0",
+            provider_id="fraimed",
+            scope_id=frame_id,
+            container_id=space_id,
         )
-        if context is None:
-            raise RuntimeError("Fraimed scope response did not include a Frame.")
-        frame = context["frame"]
-        validation = context.get("validationItems", [])
-        if frame.get("id") != frame_id:
-            raise RuntimeError("Fraimed returned a different Frame.")
-        return ScopeSnapshot(
-            authority="fraimed",
-            frame_id=frame["id"],
-            frame_title=frame["title"],
-            frame_status=frame["status"],
-            validation_open=sum(
-                not item.get("met", False)
-                for item in validation
-                if isinstance(item, dict)
-            ),
-            observed_at=datetime.now(UTC),
-            authority_ref=f"fraimed://frame/{frame['id']}",
-        )
+        observation = await self._provider.observe(target)
+        return observation_to_legacy_snapshot(observation)
+
+
+MAX_RESPONSE_BLOCKS = 32
+MAX_RESPONSE_BYTES = 64 * 1024
+MAX_RESPONSE_DEPTH = 32
+ContextFetcher = Callable[[WorkflowTarget], Awaitable[Sequence[str]]]
 
 
 class FraimedWorkflowProvider:
     """Provider-neutral adapter for observed Fraimed context."""
 
-    def __init__(self, url: str, token: str, *, timeout_seconds: float = 10) -> None:
+    def __init__(
+        self,
+        url: str,
+        token: str,
+        *,
+        timeout_seconds: float = 10,
+        context_fetcher: ContextFetcher | None = None,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         if not url.startswith("https://"):
             raise ValueError("Fraimed MCP URL must use HTTPS.")
         if not token:
@@ -109,10 +74,58 @@ class FraimedWorkflowProvider:
         self._url = url
         self._token = token
         self._timeout_seconds = timeout_seconds
+        self._context_fetcher = context_fetcher
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     async def observe(self, target: WorkflowTarget) -> WorkflowObservation:
         if target.provider_id != "fraimed" or target.container_id is None:
             raise WorkflowTargetMismatch()
+        try:
+            texts = (
+                await self._context_fetcher(target)
+                if self._context_fetcher is not None
+                else await self._fetch_context(target)
+            )
+        except (
+            WorkflowAuthenticationRequired,
+            WorkflowResponseInvalid,
+            WorkflowTargetMismatch,
+            WorkflowTimeout,
+            WorkflowUnavailable,
+        ):
+            raise
+        except Exception as error:
+            raise WorkflowUnavailable() from error
+        context = _bounded_context(texts)
+        frame = context.get("frame")
+        validation = context.get("validationItems", [])
+        if not isinstance(frame, dict) or not isinstance(validation, list):
+            raise WorkflowResponseInvalid()
+        if frame.get("id") != target.scope_id:
+            raise WorkflowTargetMismatch()
+        try:
+            return make_observation(
+                target,
+                assurance="observed",
+                title=str(frame["title"]),
+                status=str(frame["status"]),
+                validation_open=sum(
+                    not item.get("met", False)
+                    for item in validation
+                    if isinstance(item, dict)
+                ),
+                observed_at=self._clock(),
+                authority_ref=f"fraimed://frame/{target.scope_id}",
+                provider_revision=(
+                    str(frame["closureGeneration"])
+                    if frame.get("closureGeneration") is not None
+                    else None
+                ),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise WorkflowResponseInvalid() from error
+
+    async def _fetch_context(self, target: WorkflowTarget) -> list[str]:
         headers = {"Authorization": f"Bearer {self._token}"}
         timeout = httpx.Timeout(self._timeout_seconds)
         try:
@@ -149,48 +162,51 @@ class FraimedWorkflowProvider:
             raise WorkflowUnavailable() from error
         if result.isError:
             raise WorkflowResponseInvalid()
-        documents: list[object] = []
+        texts: list[str] = []
         for block in result.content:
             text = getattr(block, "text", None)
             if isinstance(text, str):
-                try:
-                    documents.append(json.loads(text))
-                except json.JSONDecodeError:
-                    continue
-        context = next(
-            (
-                item
-                for item in documents
-                if isinstance(item, dict) and "frame" in item
-            ),
-            None,
-        )
-        if context is None:
+                texts.append(text)
+        return texts
+
+
+def _bounded_context(texts: Sequence[str]) -> dict[str, object]:
+    if len(texts) > MAX_RESPONSE_BLOCKS:
+        raise WorkflowResponseInvalid()
+    total = 0
+    documents: list[object] = []
+    for text in texts:
+        total += len(text.encode("utf-8"))
+        if total > MAX_RESPONSE_BYTES:
             raise WorkflowResponseInvalid()
-        frame = context.get("frame")
-        validation = context.get("validationItems", [])
-        if not isinstance(frame, dict) or not isinstance(validation, list):
-            raise WorkflowResponseInvalid()
-        if frame.get("id") != target.scope_id:
-            raise WorkflowTargetMismatch()
         try:
-            return make_observation(
-                target,
-                assurance="observed",
-                title=str(frame["title"]),
-                status=str(frame["status"]),
-                validation_open=sum(
-                    not item.get("met", False)
-                    for item in validation
-                    if isinstance(item, dict)
-                ),
-                observed_at=datetime.now(UTC),
-                authority_ref=f"fraimed://frame/{target.scope_id}",
-                provider_revision=(
-                    str(frame["closureGeneration"])
-                    if frame.get("closureGeneration") is not None
-                    else None
-                ),
-            )
-        except (KeyError, TypeError, ValueError) as error:
+            document = json.loads(text)
+        except (json.JSONDecodeError, RecursionError) as error:
             raise WorkflowResponseInvalid() from error
+        if _json_depth(document) > MAX_RESPONSE_DEPTH:
+            raise WorkflowResponseInvalid()
+        documents.append(document)
+    context = next(
+        (
+            item
+            for item in documents
+            if isinstance(item, dict) and "frame" in item
+        ),
+        None,
+    )
+    if not isinstance(context, dict):
+        raise WorkflowResponseInvalid()
+    return context
+
+
+def _json_depth(value: object, depth: int = 0) -> int:
+    if depth > MAX_RESPONSE_DEPTH:
+        return depth
+    if isinstance(value, dict):
+        return max(
+            (_json_depth(item, depth + 1) for item in value.values()),
+            default=depth,
+        )
+    if isinstance(value, list):
+        return max((_json_depth(item, depth + 1) for item in value), default=depth)
+    return depth
