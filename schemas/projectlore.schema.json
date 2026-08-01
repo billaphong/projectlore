@@ -43,6 +43,31 @@
       "title": "AuthorityKind",
       "type": "string"
     },
+    "BoundCheckerExecution": {
+      "additionalProperties": false,
+      "properties": {
+        "binding_version": {
+          "const": "projectlore-bound-execution/1.0.0",
+          "title": "Binding Version",
+          "type": "string"
+        },
+        "execution": {
+          "$ref": "#/$defs/CheckerExecution"
+        },
+        "planned_check_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Planned Check Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_version",
+        "planned_check_id",
+        "execution"
+      ],
+      "title": "BoundCheckerExecution",
+      "type": "object"
+    },
     "CheckerBinding": {
       "additionalProperties": false,
       "properties": {
@@ -90,6 +115,100 @@
         "checker"
       ],
       "title": "CheckerBinding",
+      "type": "object"
+    },
+    "CheckerExecution": {
+      "additionalProperties": false,
+      "properties": {
+        "argv_digest": {
+          "title": "Argv Digest",
+          "type": "string"
+        },
+        "checker": {
+          "title": "Checker",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "pass",
+            "fail",
+            "indeterminate"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "execution_version": {
+          "const": "projectlore-checker-execution/0.1.0",
+          "title": "Execution Version",
+          "type": "string"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Exit Code"
+        },
+        "network": {
+          "const": "deny",
+          "title": "Network",
+          "type": "string"
+        },
+        "network_enforcement": {
+          "enum": [
+            "not_run",
+            "os_sandbox"
+          ],
+          "title": "Network Enforcement",
+          "type": "string"
+        },
+        "output_truncated": {
+          "title": "Output Truncated",
+          "type": "boolean"
+        },
+        "reason_code": {
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "sandbox_backend": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sandbox Backend"
+        },
+        "stderr": {
+          "title": "Stderr",
+          "type": "string"
+        },
+        "stdout": {
+          "title": "Stdout",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_version",
+        "checker",
+        "decision",
+        "reason_code",
+        "exit_code",
+        "stdout",
+        "stderr",
+        "output_truncated",
+        "network",
+        "network_enforcement",
+        "sandbox_backend",
+        "argv_digest"
+      ],
+      "title": "CheckerExecution",
       "type": "object"
     },
     "Concept": {
@@ -458,6 +577,205 @@
       "title": "Domain",
       "type": "object"
     },
+    "GateEvidenceV0": {
+      "additionalProperties": false,
+      "properties": {
+        "assurance_scope": {
+          "enum": [
+            "local_advisory",
+            "ci_job_result"
+          ],
+          "title": "Assurance Scope",
+          "type": "string"
+        },
+        "changed_files_digest": {
+          "title": "Changed Files Digest",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "pass",
+            "fail",
+            "indeterminate"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "evidence_version": {
+          "const": "projectlore-gate-evidence/0.1.0",
+          "title": "Evidence Version",
+          "type": "string"
+        },
+        "executions": {
+          "items": {
+            "$ref": "#/$defs/CheckerExecution"
+          },
+          "title": "Executions",
+          "type": "array"
+        },
+        "model_digest": {
+          "title": "Model Digest",
+          "type": "string"
+        },
+        "planned_checks": {
+          "items": {
+            "$ref": "#/$defs/PlannedCheckV0"
+          },
+          "title": "Planned Checks",
+          "type": "array"
+        },
+        "repository_certified": {
+          "const": false,
+          "default": false,
+          "title": "Repository Certified",
+          "type": "boolean"
+        },
+        "selected_rule_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected Rule Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "evidence_version",
+        "evidence_id",
+        "model_digest",
+        "changed_files_digest",
+        "assurance_scope",
+        "selected_rule_ids",
+        "planned_checks",
+        "executions",
+        "decision"
+      ],
+      "title": "GateEvidenceV0",
+      "type": "object"
+    },
+    "GateEvidenceV1": {
+      "additionalProperties": false,
+      "properties": {
+        "assurance_scope": {
+          "enum": [
+            "local_advisory",
+            "ci_job_result"
+          ],
+          "title": "Assurance Scope",
+          "type": "string"
+        },
+        "bound_executions": {
+          "items": {
+            "$ref": "#/$defs/BoundCheckerExecution"
+          },
+          "title": "Bound Executions",
+          "type": "array"
+        },
+        "decision": {
+          "enum": [
+            "pass",
+            "fail",
+            "indeterminate"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "evidence_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "evidence_version": {
+          "const": "projectlore-gate-evidence/1.0.0",
+          "title": "Evidence Version",
+          "type": "string"
+        },
+        "planned_checks": {
+          "items": {
+            "$ref": "#/$defs/PlannedCheck"
+          },
+          "title": "Planned Checks",
+          "type": "array"
+        },
+        "repository_certified": {
+          "const": false,
+          "default": false,
+          "title": "Repository Certified",
+          "type": "boolean"
+        },
+        "selection": {
+          "$ref": "#/$defs/ImpactSelectionV1"
+        }
+      },
+      "required": [
+        "evidence_version",
+        "evidence_id",
+        "selection",
+        "assurance_scope",
+        "planned_checks",
+        "bound_executions",
+        "decision"
+      ],
+      "title": "GateEvidenceV1",
+      "type": "object"
+    },
+    "ImpactSelectionV1": {
+      "additionalProperties": false,
+      "properties": {
+        "applicable_rule_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Applicable Rule Ids",
+          "type": "array"
+        },
+        "changed_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Changed Files",
+          "type": "array"
+        },
+        "changed_files_digest": {
+          "title": "Changed Files Digest",
+          "type": "string"
+        },
+        "conservative_fallback": {
+          "title": "Conservative Fallback",
+          "type": "boolean"
+        },
+        "model_digest": {
+          "title": "Model Digest",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "selection_version": {
+          "const": "projectlore-impact/1.0.0",
+          "title": "Selection Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "selection_version",
+        "model_digest",
+        "changed_files",
+        "changed_files_digest",
+        "applicable_rule_ids",
+        "reasons",
+        "conservative_fallback"
+      ],
+      "title": "ImpactSelectionV1",
+      "type": "object"
+    },
     "ImplementationAnchor": {
       "additionalProperties": false,
       "properties": {
@@ -709,6 +1027,108 @@
         "source_refs"
       ],
       "title": "PlannedBinding",
+      "type": "object"
+    },
+    "PlannedCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "title": "Adapter",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "semgrep",
+            "architecture_test",
+            "project_test"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "planned_check_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Planned Check Id",
+          "type": "string"
+        },
+        "planned_check_version": {
+          "const": "projectlore-planned-check/1.0.0",
+          "title": "Planned Check Version",
+          "type": "string"
+        },
+        "rule_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rule Ids",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "trusted_checker": {
+          "title": "Trusted Checker",
+          "type": "string"
+        }
+      },
+      "required": [
+        "planned_check_version",
+        "planned_check_id",
+        "adapter",
+        "kind",
+        "trusted_checker",
+        "rule_ids",
+        "source_refs"
+      ],
+      "title": "PlannedCheck",
+      "type": "object"
+    },
+    "PlannedCheckV0": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "title": "Adapter",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "semgrep",
+            "architecture_test",
+            "project_test"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "rule_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rule Ids",
+          "type": "array"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "trusted_checker": {
+          "title": "Trusted Checker",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adapter",
+        "kind",
+        "trusted_checker",
+        "rule_ids",
+        "source_refs"
+      ],
+      "title": "PlannedCheckV0",
       "type": "object"
     },
     "PlannedFinding": {
@@ -1827,6 +2247,8 @@
     "DeclaredWorkflowContext",
     "ObservedWorkflowContext",
     "PolicyEvaluationPlan",
-    "PlannedPolicyResult"
+    "PlannedPolicyResult",
+    "GateEvidenceV0",
+    "GateEvidenceV1"
   ]
 }

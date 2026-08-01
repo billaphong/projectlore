@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
+from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, ValidationError
 
-from projectlore.assurance import GateEvidence
+from projectlore.assurance import (
+    GateEvidenceAny,
+    GateEvidenceV0,
+    validate_gate_evidence,
+)
+from projectlore.compiler import ProjectModel
 from projectlore.models import StrictModel
 
 
@@ -43,9 +49,38 @@ class IntegrationEvidence(StrictModel):
     evidence_version: Literal["projectlore-integration-evidence/0.1.0"]
     hook_active: bool = False
     hook_evidence_refs: tuple[str, ...] = ()
-    local_gate: GateEvidence | None = None
-    ci_gate: GateEvidence | None = None
+    local_gate: GateEvidenceAny | None = None
+    ci_gate: GateEvidenceAny | None = None
     protected_gate: ProtectedGateObservation | None = None
+
+
+MAX_INTEGRATION_EVIDENCE_BYTES = 384 * 1024
+
+
+def parse_integration_evidence(
+    raw: bytes,
+) -> tuple[IntegrationEvidence | None, tuple[str, ...]]:
+    """Tolerantly parse bounded imported evidence without granting trust."""
+
+    if len(raw) > MAX_INTEGRATION_EVIDENCE_BYTES:
+        return None, ("invalid_integration_evidence:artifact_too_large",)
+    try:
+        evidence = IntegrationEvidence.model_validate_json(raw)
+    except (ValidationError, ValueError):
+        return None, ("invalid_integration_evidence:malformed",)
+    return evidence, ()
+
+
+def load_integration_evidence(
+    path: Path,
+) -> tuple[IntegrationEvidence | None, tuple[str, ...]]:
+    """Read no more than the accepted artifact bound plus one sentinel byte."""
+
+    if not path.is_file() or path.is_symlink():
+        return None, ("invalid_integration_evidence:not_regular_file",)
+    with path.open("rb") as handle:
+        raw = handle.read(MAX_INTEGRATION_EVIDENCE_BYTES + 1)
+    return parse_integration_evidence(raw)
 
 
 class AssuranceReport(StrictModel):
@@ -63,6 +98,8 @@ def assess_assurance(
     model_digest: str,
     evidence: IntegrationEvidence | None = None,
     *,
+    project: ProjectModel | None = None,
+    ingestion_diagnostics: tuple[str, ...] = (),
     now: datetime | None = None,
 ) -> AssuranceReport:
     """Advance only through contiguous assurance levels with valid evidence."""
@@ -73,7 +110,7 @@ def assess_assurance(
     )
     achieved = AssuranceState.AVAILABLE
     refs: list[str] = [f"model:{model_digest}"]
-    missing: list[str] = []
+    missing: list[str] = list(ingestion_diagnostics)
 
     hook_valid = supplied.hook_active and bool(supplied.hook_evidence_refs)
     if hook_valid:
@@ -82,21 +119,17 @@ def assess_assurance(
     else:
         missing.append("active_hook_with_reviewable_evidence")
 
-    local_valid = _valid_gate(
-        supplied.local_gate, model_digest, "local_advisory"
+    local_consistent = _valid_gate(
+        supplied.local_gate, project, "local_advisory"
     )
-    if hook_valid and local_valid:
-        achieved = AssuranceState.LOCAL_GATE_PASSED
-        assert supplied.local_gate is not None
-        refs.append(f"gate:{supplied.local_gate.evidence_id}")
+    if local_consistent:
+        missing.append("authenticated_local_gate_provenance")
     else:
         missing.append("passing_local_gate_for_current_model")
 
-    ci_valid = _valid_gate(supplied.ci_gate, model_digest, "ci_job_result")
-    if achieved == AssuranceState.LOCAL_GATE_PASSED and ci_valid:
-        achieved = AssuranceState.CI_GATE_PASSED
-        assert supplied.ci_gate is not None
-        refs.append(f"gate:{supplied.ci_gate.evidence_id}")
+    ci_valid = _valid_gate(supplied.ci_gate, project, "ci_job_result")
+    if ci_valid:
+        missing.append("authenticated_ci_provenance")
     else:
         missing.append("passing_ci_gate_for_current_model")
 
@@ -133,16 +166,20 @@ def assess_assurance(
 
 
 def _valid_gate(
-    evidence: GateEvidence | None,
-    model_digest: str,
+    evidence: GateEvidenceAny | None,
+    project: ProjectModel | None,
     scope: Literal["local_advisory", "ci_job_result"],
 ) -> bool:
+    if evidence is None or isinstance(evidence, GateEvidenceV0) or project is None:
+        return False
+    try:
+        state = validate_gate_evidence(evidence, project)
+    except ValueError:
+        return False
     return bool(
-        evidence is not None
-        and evidence.model_digest == model_digest
+        state == "project_semantics_validated"
         and evidence.assurance_scope == scope
         and evidence.decision == "pass"
-        and evidence.repository_certified is False
     )
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from projectlore.assurance import GateEvidenceV0, GateEvidenceV1
 from projectlore.models import (
     CheckerBinding,
     ContextProfile,
@@ -40,6 +41,8 @@ def render_json_schema() -> str:
         ObservedWorkflowContext,
         PolicyEvaluationPlan,
         PlannedPolicyResult,
+        GateEvidenceV0,
+        GateEvidenceV1,
     ):
         contract_schema = contract.model_json_schema(
             ref_template="#/$defs/{model}",
@@ -69,6 +72,8 @@ def render_json_schema() -> str:
         "ObservedWorkflowContext",
         "PolicyEvaluationPlan",
         "PlannedPolicyResult",
+        "GateEvidenceV0",
+        "GateEvidenceV1",
     ]
     return json.dumps(schema, indent=2, sort_keys=True) + "\n"
 

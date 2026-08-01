@@ -12,7 +12,10 @@ from pathlib import Path
 import yaml
 
 from projectlore import __version__
-from projectlore.assurance_report import IntegrationEvidence, assess_assurance
+from projectlore.assurance_report import (
+    assess_assurance,
+    load_integration_evidence,
+)
 from projectlore.doctor import run_doctor
 from projectlore.evaluation import evaluate_once
 from projectlore.integration import apply_instruction_previews, instruction_previews
@@ -415,16 +418,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "integration":
         try:
             service = ModelService(args.model)
-            evidence = (
-                IntegrationEvidence.model_validate_json(
-                    args.evidence.read_text(encoding="utf-8")
+            if args.evidence is not None:
+                evidence, evidence_diagnostics = load_integration_evidence(
+                    args.evidence
                 )
-                if args.evidence is not None
-                else None
-            )
+            else:
+                evidence, evidence_diagnostics = None, ()
         except (FileNotFoundError, OSError, ValueError, InvalidModelError) as error:
             parser.error(str(error))
-        assurance_report = assess_assurance(service.project.digest, evidence)
+        assurance_report = assess_assurance(
+            service.project.digest,
+            evidence,
+            project=service.project,
+            ingestion_diagnostics=evidence_diagnostics,
+        )
         print(json.dumps(assurance_report.model_dump(mode="json"), indent=2))
         return 0 if not assurance_report.missing_requirements else 2
 

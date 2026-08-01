@@ -51,6 +51,8 @@ def test_portable_schema_names_every_public_contract() -> None:
         "ObservedWorkflowContext",
         "PolicyEvaluationPlan",
         "PlannedPolicyResult",
+        "GateEvidenceV0",
+        "GateEvidenceV1",
     }
     assert (
         set(schema["x-projectlore-public-contracts"]) - {"ProjectKnowledgeModel"}

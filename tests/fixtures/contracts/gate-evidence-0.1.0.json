@@ -1,0 +1,12 @@
+{
+  "evidence_version": "projectlore-gate-evidence/0.1.0",
+  "evidence_id": "sha256:legacy",
+  "model_digest": "sha256:model",
+  "changed_files_digest": "sha256:files",
+  "assurance_scope": "local_advisory",
+  "repository_certified": false,
+  "selected_rule_ids": [],
+  "planned_checks": [],
+  "executions": [],
+  "decision": "pass"
+}

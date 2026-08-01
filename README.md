@@ -180,6 +180,12 @@ check, non-bypass policy, configuration revision/time, and the verifier's
 insufficient hosted evidence remains indeterminate and never promotes the
 reported state.
 
+Imported gate JSON is an untrusted claim. Version 1 evidence is checked for
+internal integrity, exact plan/execution binding, and current-model impact
+semantics, but its self-hash cannot authenticate where it ran. Imported
+evidence alone therefore cannot promote a local or hosted gate state;
+authenticated provenance remains a separately reported requirement.
+
 See [the pilot proof](docs/pilots/homebrew-forecast-trust.md) for its frozen
 corpus, thresholds, and explicit limits.
 
