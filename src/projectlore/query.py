@@ -24,6 +24,30 @@ class QueryService:
         self.model = project.model
         self._concepts = {item.id: item for item in self.model.concepts}
         self._sources = {item.id: item for item in self.model.sources}
+        outgoing: dict[str, list[Relationship]] = {}
+        incoming: dict[str, list[Relationship]] = {}
+        for relationship in sorted(self.model.relationships, key=lambda item: item.id):
+            outgoing.setdefault(relationship.subject_ref, []).append(relationship)
+            incoming.setdefault(relationship.object_ref, []).append(relationship)
+        concept_ids = set(outgoing) | set(incoming)
+        self._relationship_index: dict[
+            str, dict[str, tuple[Relationship, ...]]
+        ] = {
+            "outgoing": {key: tuple(value) for key, value in outgoing.items()},
+            "incoming": {key: tuple(value) for key, value in incoming.items()},
+            "both": {
+                key: tuple(
+                    sorted(
+                        {
+                            item.id: item
+                            for item in (*outgoing.get(key, ()), *incoming.get(key, ()))
+                        }.values(),
+                        key=lambda item: item.id,
+                    )
+                )
+                for key in concept_ids
+            },
+        }
         self._contract_digest = _digest(
             {"contract_version": CONTRACT_VERSION, "tools": TOOL_INPUT_SCHEMAS}
         )
@@ -169,9 +193,7 @@ class QueryService:
             current, depth = queue.popleft()
             if depth >= max_depth:
                 continue
-            relationships = sorted(
-                self.model.relationships, key=lambda item: item.id
-            )
+            relationships = self._relationship_index[direction].get(current, ())
             for relationship in relationships:
                 next_ids: list[str] = []
                 if (
