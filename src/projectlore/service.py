@@ -50,8 +50,8 @@ class ModelService:
         result["path"] = str(self._path)
         return result
 
-    def context_for_task(self, task: str) -> dict[str, Any]:
-        result = self._query.context_for_task(task)
+    def context_for_task(self, task: str, *, limit: int = 20) -> dict[str, Any]:
+        result = self._query.context_for_task(task, limit=limit)
         result["sources"] = result["provenance"]
         return result
 

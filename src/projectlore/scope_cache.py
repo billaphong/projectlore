@@ -10,11 +10,14 @@ from typing import Protocol
 
 from pydantic import Field, ValidationError
 
-from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.models import StrictModel
+from projectlore.provider_dispatch import resolve_workflow_observation
 from projectlore.scope import ScopeSnapshot
-from projectlore.workflow import ObservedWorkflowContext
-from projectlore.workflow_compat import legacy_snapshot_to_observation
+from projectlore.workflow import ObservedWorkflowContext, WorkflowTarget
+from projectlore.workflow_compat import (
+    legacy_snapshot_to_observation,
+    observation_to_legacy_snapshot,
+)
 from projectlore.workflow_state import write_observed_context
 from projectlore.workflow_target import load_workflow_target
 
@@ -114,8 +117,35 @@ async def refresh_scope_from_environment(
     if not token:
         raise ValueError("FRAIMED_API_TOKEN is required to refresh scope.")
     url = os.environ.get("PROJECTLORE_FRAIMED_MCP_URL", DEFAULT_FRAIMED_MCP_URL)
-    authority = FraimedScopeAuthority(url, token)
-    return await refresh_scope(root, authority)
+    target = load_workflow_target(root)
+    if target is None:
+        legacy = load_scope_target(root, required=True)
+        assert legacy is not None
+        target = WorkflowTarget(
+            target_version="projectlore-workflow-target/1.0.0",
+            project_id="legacy:projectlore/compatibility",
+            model_entrypoint="legacy://scope-snapshot/0.1.0",
+            provider_id="fraimed",
+            scope_id=legacy.frame_id,
+            container_id=legacy.space_id,
+        )
+    observation = await resolve_workflow_observation(
+        target, fraimed_url=url, fraimed_token=token
+    )
+    snapshot = observation_to_legacy_snapshot(observation)
+    if target.project_id != "legacy:projectlore/compatibility":
+        write_observed_context(
+            root,
+            ObservedWorkflowContext(
+                context_version="projectlore-workflow-context/1.0.0",
+                context_kind="observed",
+                observation=observation,
+                maximum_age_seconds=300,
+            ),
+        )
+    path = _fixed_path(root, SCOPE_SNAPSHOT_PATH)
+    _atomic_write(path, f"{snapshot.model_dump_json(indent=2)}\n")
+    return path, snapshot
 
 
 def configure_local_scope(

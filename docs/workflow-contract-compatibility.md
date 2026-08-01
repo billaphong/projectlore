@@ -9,7 +9,7 @@ migration policy, not authorization to change a payload in place.
 | Surface | Current identifier | Phase 1 classification | Compatibility decision |
 | --- | --- | --- | --- |
 | Canonical model | `schema_version` (`0.x` currently accepted) | Independent schema contract | Continue explicit model migrations; reads never rewrite canonical YAML. |
-| MCP tools and envelopes | `projectlore-tools/0.3.0` | Current provider-neutral public tool contract | `policy_check` requires only facts; optional identity can only confirm operator configuration. |
+| MCP tools and envelopes | `projectlore-tools/0.4.0` | Current provider-neutral public tool contract | One normative ToolSpec is checked against all runtime MCP schemas; `context_for_task.limit` is consistently exposed. |
 | MCP tools and envelopes | `projectlore-tools/0.2.0` | Frozen compatibility contract | The former caller-selected workflow identity is not accepted by 0.3. |
 | `ScopeSnapshot` | Unversioned; `frame_*` fields | Legacy public payload | Freeze with a golden fixture. A provider-neutral replacement is breaking and must have an explicit version and migration path. |
 | `ScopeReceipt` | `scope-receipt/0.1.0` | Public evidence payload | Continue reading the golden Fraimed-shaped receipt until a documented major-version removal. Additive readers may normalize it internally. |
@@ -17,6 +17,8 @@ migration policy, not authorization to change a payload in place.
 | `PolicyRequest` | Unversioned inside tool `0.2.0` | Tool-contract payload | The tool version governs compatibility. Provider/assurance changes require a tool-contract increment. |
 | `PolicyResult` | Unversioned inside tool `0.2.0` | Tool-contract payload | Preserve legacy optional `scope_receipt`; new assurance/result semantics require a tool-contract increment. |
 | Source-gate evidence | `projectlore-source-gate/0.1.0` | Persisted evidence | Any new required identity, assurance, or target-binding field requires a new evidence version. |
+| Repository gate evidence | `projectlore-gate-evidence/0.1.0` | Frozen legacy evidence | Readable for compatibility but unbound, unauthenticated, and never assurance-promoting. |
+| Repository gate evidence | `projectlore-gate-evidence/1.0.0` | Current self-consistent evidence | Binds normalized impact selection, plans, and bounded executions. Imported evidence is not authenticated local or hosted provenance and cannot promote assurance by itself. |
 | Agent lifecycle event | `projectlore-agent-event/0.1.0` | Client integration contract | Provider-neutral lifecycle changes must retain an adapter or increment this contract. |
 | Policy registry | Unversioned bounded JSON | Operator-authored configuration | A versioned registry envelope is required before changing binding meaning or required fields. |
 | Canonical workflow target | `projectlore-workflow-target/1.0.0` | Provider-neutral persisted identity contract | Binds canonical project ID, root-relative model entrypoint, provider, scope, and optional container. It does not reinterpret `scope-target/0.1.0`. |

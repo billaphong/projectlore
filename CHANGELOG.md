@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added execution-bound repository gate evidence 1.0 while retaining 0.1 as a
+  frozen, non-promoting compatibility format.
+- Added a normative MCP ToolSpec and corrected `context_for_task.limit` parity.
+
 ProjectLore follows Keep a Changelog and Semantic Versioning. Dates use UTC.
 
 ## [Unreleased]

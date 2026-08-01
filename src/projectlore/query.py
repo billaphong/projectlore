@@ -10,25 +10,10 @@ from typing import Any, Literal
 
 from projectlore.compiler import ProjectModel
 from projectlore.models import Concept, Relationship, Rule, Source
+from projectlore.tool_spec import TOOL_INPUT_SCHEMAS, TOOLS_CONTRACT_VERSION
 
-CONTRACT_VERSION = "projectlore-tools/0.3.0"
+CONTRACT_VERSION = TOOLS_CONTRACT_VERSION
 _TOKEN = re.compile(r"[a-z0-9_]+")
-_TOOLS: dict[str, object] = {
-    "model_status": {"arguments": []},
-    "model_search": {"arguments": ["query", "limit"]},
-    "model_get_concept": {"arguments": ["concept_id"]},
-    "model_resolve_term": {"arguments": ["term"]},
-    "model_get_relationships": {
-        "arguments": ["concept_id", "direction", "max_depth", "limit"]
-    },
-    "model_validate": {"arguments": []},
-    "context_for_task": {"arguments": ["task", "limit"]},
-    "policy_check": {
-        "required": ["facts"],
-        "optional": ["context_requirements", "target_identity"],
-        "target_authority": "operator_configured_only",
-    },
-}
 
 
 class QueryService:
@@ -40,7 +25,7 @@ class QueryService:
         self._concepts = {item.id: item for item in self.model.concepts}
         self._sources = {item.id: item for item in self.model.sources}
         self._contract_digest = _digest(
-            {"contract_version": CONTRACT_VERSION, "tools": _TOOLS}
+            {"contract_version": CONTRACT_VERSION, "tools": TOOL_INPUT_SCHEMAS}
         )
 
     def envelope(

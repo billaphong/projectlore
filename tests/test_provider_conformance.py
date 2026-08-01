@@ -224,7 +224,9 @@ def test_malformed_provider_environment_is_not_eagerly_constructed(
     def forbidden(*args: object, **kwargs: object) -> object:
         raise AssertionError("provider constructed without a configured target")
 
-    monkeypatch.setattr("projectlore.mcp_server.FraimedScopeAuthority", forbidden)
+    monkeypatch.setattr(
+        "projectlore.provider_dispatch.FraimedWorkflowProvider", forbidden
+    )
     server = create_server(MODEL)
     status = asyncio.run(server.call_tool("model_status", {}))
     assert isinstance(status, tuple)

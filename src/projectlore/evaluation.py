@@ -14,10 +14,12 @@ from typing import Any
 
 import yaml
 
-from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.policy import PolicyRequest, policy_check
+from projectlore.provider_dispatch import resolve_workflow_observation
 from projectlore.scope_cache import LegacyScopeAuthority
 from projectlore.service import ModelService
+from projectlore.workflow import WorkflowTarget
+from projectlore.workflow_compat import observation_to_legacy_snapshot
 
 
 async def evaluate_once(
@@ -36,22 +38,31 @@ async def evaluate_once(
     corpus = yaml.safe_load(corpus_path.read_text(encoding="utf-8"))
     project_root = corpus_path.resolve().parents[2]
     model_path = project_root / corpus["model"]
+    service = ModelService(model_path)
     scope = None
     if provider is not None:
         if provider != "fraimed":
             raise ValueError(f"Unsupported evaluation provider: {provider}")
         if scope_id is None:
             raise ValueError("External evaluation requires --scope-id.")
-        authority = scope_authority or FraimedScopeAuthority(
-            os.environ.get(
+        target = WorkflowTarget(
+            target_version="projectlore-workflow-target/1.0.0",
+            project_id=service.model.id,
+            model_entrypoint=Path(corpus["model"]).as_posix(),
+            provider_id="fraimed",
+            scope_id=scope_id,
+            container_id=container_id,
+        )
+        observation = await resolve_workflow_observation(
+            target,
+            injected_authority=scope_authority,
+            fraimed_url=os.environ.get(
                 "PROJECTLORE_FRAIMED_MCP_URL",
                 "https://www.fraimed.ai/api/mcp",
             ),
-            os.environ.get("FRAIMED_API_TOKEN", ""),
+            fraimed_token=os.environ.get("FRAIMED_API_TOKEN", ""),
         )
-        scope = await authority.current_scope(scope_id, container_id)
-
-    service = ModelService(model_path)
+        scope = observation_to_legacy_snapshot(observation)
     retrieval_success = 0
     provenance_correct = 0
     latencies: list[float] = []
@@ -80,7 +91,9 @@ async def evaluate_once(
         result = policy_check(
             service,
             PolicyRequest(facts=case["facts"], scope=scope),
-            scope_obtained_via="fraimed_mcp",
+            scope_obtained_via=(
+                "fraimed_mcp" if provider == "fraimed" else "provided_snapshot"
+            ),
         )
         latencies.append((time.perf_counter_ns() - started) / 1_000_000)
         finding = result["findings"][0]

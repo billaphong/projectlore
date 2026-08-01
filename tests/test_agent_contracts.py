@@ -14,6 +14,7 @@ from projectlore.policy import PolicyRequest, PolicyService
 from projectlore.query import QueryService
 from projectlore.scope import ScopeSnapshot
 from projectlore.service import ModelService
+from projectlore.tool_spec import TOOL_INPUT_SCHEMAS
 from projectlore.workflow import WorkflowAuthenticationRequired, WorkflowTarget
 from projectlore.workflow_target import configure_workflow_target
 
@@ -110,7 +111,7 @@ def test_mcp_exposes_complete_read_only_contract_and_timeout_state() -> None:
     for tool, arguments in cases.items():
         result = asyncio.run(server.call_tool(tool, arguments))
         assert isinstance(result, tuple)
-        assert result[1]["contract_version"] == "projectlore-tools/0.3.0"
+        assert result[1]["contract_version"] == "projectlore-tools/0.4.0"
 
     timeout = asyncio.run(
         server.call_tool(
@@ -155,6 +156,24 @@ def test_policy_tool_schema_is_provider_neutral_and_facts_only_required() -> Non
     }
     assert "frame_id" not in json.dumps(schema)
     assert "space_id" not in json.dumps(schema)
+
+
+def test_every_mcp_schema_matches_normative_tool_spec() -> None:
+    tools = asyncio.run(create_server(MODEL).list_tools())
+    actual = {tool.name: _without_presentation(tool.inputSchema) for tool in tools}
+    assert actual == TOOL_INPUT_SCHEMAS
+
+
+def _without_presentation(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: _without_presentation(item)
+            for key, item in value.items()
+            if key not in {"title", "description"}
+        }
+    if isinstance(value, list):
+        return [_without_presentation(item) for item in value]
+    return value
 
 
 def test_mcp_resolves_workflow_zero_or_one_time_from_the_frozen_plan(
@@ -304,9 +323,7 @@ def test_mcp_preserves_typed_provider_failure_per_binding(tmp_path: Path) -> Non
         )
     )
     assert isinstance(mismatch, tuple)
-    mismatch_by_rule = {
-        item["rule_id"]: item for item in mismatch[1]["findings"]
-    }
+    mismatch_by_rule = {item["rule_id"]: item for item in mismatch[1]["findings"]}
     assert mismatch_by_rule[scoped_rule]["outcome"] == "workflow_target_mismatch"
 
 

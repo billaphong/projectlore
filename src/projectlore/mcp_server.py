@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
-from projectlore.fraimed import FraimedScopeAuthority
 from projectlore.loader import project_root_for_model
 from projectlore.policy import (
     FailedWorkflowResolution,
@@ -21,19 +21,18 @@ from projectlore.policy import (
 from projectlore.policy import (
     evaluate_policy as evaluate_plan,
 )
+from projectlore.provider_dispatch import resolve_workflow_observation
 from projectlore.query import QueryService
 from projectlore.refresh import RefreshingModelService
 from projectlore.scope_cache import LegacyScopeAuthority
 from projectlore.service import ModelService
 from projectlore.workflow import (
     DeclaredWorkflowContext,
-    LocalScopeProvider,
     ObservedWorkflowContext,
     WorkflowProviderFailure,
     WorkflowTarget,
     issue_workflow_receipt,
 )
-from projectlore.workflow_compat import legacy_snapshot_to_observation
 from projectlore.workflow_state import load_workflow_context
 from projectlore.workflow_target import load_workflow_target
 
@@ -60,7 +59,10 @@ def create_server(
         return snapshot.decorate(snapshot.service.model_status())
 
     @server.tool(name="model_search", structured_output=True)
-    def model_search(query: str, limit: int = 20) -> dict[str, Any]:
+    def model_search(
+        query: str,
+        limit: Annotated[int, Field(ge=1, le=100)] = 20,
+    ) -> dict[str, Any]:
         snapshot = models.refresh()
         result = QueryService(snapshot.service.project).search(query, limit=limit)
         return snapshot.decorate(result)
@@ -81,8 +83,8 @@ def create_server(
     def model_get_relationships(
         concept_id: str,
         direction: Literal["incoming", "outgoing", "both"] = "both",
-        max_depth: int = 1,
-        limit: int = 100,
+        max_depth: Annotated[int, Field(ge=1, le=5)] = 1,
+        limit: Annotated[int, Field(ge=1, le=500)] = 100,
     ) -> dict[str, Any]:
         snapshot = models.refresh()
         query = QueryService(snapshot.service.project)
@@ -107,9 +109,14 @@ def create_server(
         return snapshot.decorate(result)
 
     @server.tool(name="context_for_task", structured_output=True)
-    def context_for_task(task: str) -> dict[str, Any]:
+    def context_for_task(
+        task: str,
+        limit: Annotated[int, Field(ge=1, le=100)] = 20,
+    ) -> dict[str, Any]:
         snapshot = models.refresh()
-        return snapshot.decorate(snapshot.service.context_for_task(task))
+        return snapshot.decorate(
+            snapshot.service.context_for_task(task, limit=limit)
+        )
 
     @server.tool(name="policy_check", structured_output=True)
     async def policy_check(
@@ -172,50 +179,16 @@ def create_server(
                 ),
             )
             return snapshot.decorate(_planned_envelope(service, planned))
-        if target.provider_id == "local":
-            context = local_context or load_workflow_context(project_root)
-            if not isinstance(context, DeclaredWorkflowContext):
-                raise ValueError("Configured local workflow context is invalid.")
-            observation = LocalScopeProvider(context).current_observation(target)
-            receipt = issue_workflow_receipt(
-                observation, target, model_digest=plan.model_digest
-            )
-            planned = evaluate_plan(
-                plan,
-                ValidWorkflowResolution(
-                    state="valid_context",
-                    model_digest=plan.model_digest,
-                    target_config_digest=plan.target_config_digest,
-                    context=context,
-                    observation=observation,
-                    receipt=receipt,
-                ),
-            )
-            return snapshot.decorate(_planned_envelope(service, planned))
-        authority = injected_authority
-        if authority is None and target.provider_id == "fraimed":
-            token = os.environ.get(FRAIMED_TOKEN_ENV, "")
-            if token:
-                authority = FraimedScopeAuthority(
-                    os.environ.get(
-                        FRAIMED_URL_ENV,
-                        "https://www.fraimed.ai/api/mcp",
-                    ),
-                    token,
-                )
-        if authority is None:
-            planned = evaluate_plan(
-                plan,
-                FailedWorkflowResolution(
-                    state="provider_failure",
-                    model_digest=plan.model_digest,
-                    target_config_digest=plan.target_config_digest,
-                    failure_code="workflow_unavailable",
-                ),
-            )
-            return snapshot.decorate(_planned_envelope(service, planned))
         try:
-            scope = await authority.current_scope(target.scope_id, target.container_id)
+            observation = await resolve_workflow_observation(
+                target,
+                local_context=local_context,
+                injected_authority=injected_authority,
+                fraimed_url=os.environ.get(
+                    FRAIMED_URL_ENV, "https://www.fraimed.ai/api/mcp"
+                ),
+                fraimed_token=os.environ.get(FRAIMED_TOKEN_ENV, ""),
+            )
         except TimeoutError:
             planned = evaluate_plan(
                 plan,
@@ -249,41 +222,22 @@ def create_server(
                 ),
             )
             return snapshot.decorate(_planned_envelope(service, planned))
-        try:
-            observation = legacy_snapshot_to_observation(scope, target)
-            receipt = issue_workflow_receipt(
-                observation,
-                target,
-                model_digest=plan.model_digest,
-            )
-        except WorkflowProviderFailure as error:
-            planned = evaluate_plan(
-                plan,
-                FailedWorkflowResolution(
-                    state="provider_failure",
-                    model_digest=plan.model_digest,
-                    target_config_digest=plan.target_config_digest,
-                    failure_code=error.code,
-                ),
-            )
-            return snapshot.decorate(_planned_envelope(service, planned))
-        except (TypeError, ValueError):
-            planned = evaluate_plan(
-                plan,
-                FailedWorkflowResolution(
-                    state="provider_failure",
-                    model_digest=plan.model_digest,
-                    target_config_digest=plan.target_config_digest,
-                    failure_code="workflow_response_invalid",
-                ),
-            )
-            return snapshot.decorate(_planned_envelope(service, planned))
-        context = ObservedWorkflowContext(
-            context_version="projectlore-workflow-context/1.0.0",
-            context_kind="observed",
-            observation=observation,
-            maximum_age_seconds=receipt.maximum_age_seconds,
+        receipt = issue_workflow_receipt(
+            observation,
+            target,
+            model_digest=plan.model_digest,
         )
+        if target.provider_id == "local":
+            if not isinstance(local_context, DeclaredWorkflowContext):
+                raise ValueError("Configured local workflow context is invalid.")
+            context: DeclaredWorkflowContext | ObservedWorkflowContext = local_context
+        else:
+            context = ObservedWorkflowContext(
+                context_version="projectlore-workflow-context/1.0.0",
+                context_kind="observed",
+                observation=observation,
+                maximum_age_seconds=receipt.maximum_age_seconds,
+            )
         planned = evaluate_plan(
             plan,
             ValidWorkflowResolution(
