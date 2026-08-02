@@ -1,0 +1,16 @@
+{
+  "package_id": "projectlore-knowledge-acquisition",
+  "version": "1.3.0",
+  "verdict": "not_ready",
+  "score": 90,
+  "baseline_commit": "7354658a7e1424f18fdc5228e942371a781dc8af",
+  "tracked_diff_object": "47168b837b2b31b6172fb2c45fe764b511ea5acc",
+  "ordered_plan_components": [
+    {"path": "docs/plans/knowledge-acquisition-v1.md", "sha256": "9cd6821a0578c4b24d6748966d94942c9ad4b3e08bbbd4cae9abbe39cf09fca0"},
+    {"path": "docs/plans/knowledge-acquisition-v1.1.md", "sha256": "742408423f501243dc8be46a1dcd6631f239d5b55bb696ce880b2e3c39846130"},
+    {"path": "docs/plans/knowledge-acquisition-v1.2.md", "sha256": "0cd71d22946362c758737c83a63bf70a6c0c5084a8b08db3c05e98312368480c"},
+    {"path": "docs/plans/knowledge-acquisition-v1.3.md", "sha256": "2faca99fecb5be954a24a2eef48ca8298de7b859c17206c8a128a4d74acc9328"}
+  ],
+  "review": {"path": "docs/plans/knowledge-acquisition-v1.3.review.md", "sha256": "6df37259808af814d388d9229f69702734975b3d15a1b53d388a61caca9fd58f"},
+  "open_findings": ["KA-REV13-001", "KA-REV13-002"]
+}

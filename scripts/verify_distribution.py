@@ -22,6 +22,7 @@ REQUIRED_SDIST = {
     "CONTRIBUTING.md",
     "README.md",
     "SECURITY.md",
+    "docs/agent-onboarding.md",
     "docs/architecture.md",
     "docs/client-capabilities.json",
     "docs/compatibility.md",

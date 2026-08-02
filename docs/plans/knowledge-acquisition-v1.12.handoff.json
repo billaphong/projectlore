@@ -1,0 +1,24 @@
+{
+  "package_id":"projectlore-knowledge-acquisition","version":"1.12.0","verdict":"not_ready_packaging_only","score":99,
+  "baseline_commit":"7354658a7e1424f18fdc5228e942371a781dc8af",
+  "tracked_diff_object":"47168b837b2b31b6172fb2c45fe764b511ea5acc",
+  "ordered_plan_components":[
+    {"path":"docs/plans/knowledge-acquisition-v1.md","sha256":"9cd6821a0578c4b24d6748966d94942c9ad4b3e08bbbd4cae9abbe39cf09fca0"},
+    {"path":"docs/plans/knowledge-acquisition-v1.1.md","sha256":"742408423f501243dc8be46a1dcd6631f239d5b55bb696ce880b2e3c39846130"},
+    {"path":"docs/plans/knowledge-acquisition-v1.2.md","sha256":"0cd71d22946362c758737c83a63bf70a6c0c5084a8b08db3c05e98312368480c"},
+    {"path":"docs/plans/knowledge-acquisition-v1.3.md","sha256":"2faca99fecb5be954a24a2eef48ca8298de7b859c17206c8a128a4d74acc9328"},
+    {"path":"docs/plans/knowledge-acquisition-v1.4.md","sha256":"f6a8e87727a413f115d6757dfe457a04c0fcacf56d8e021185edebfa419f2009"},
+    {"path":"docs/plans/knowledge-acquisition-v1.5.md","sha256":"e48b997141ba1c37913979be3c6d709b91ea67830a80acbcfba34410b0f6afbb"},
+    {"path":"docs/plans/knowledge-acquisition-v1.6.md","sha256":"8f5abc8f696783c899a73a32f0f7aa794277ad4dffd53806a26197076cc71485"},
+    {"path":"docs/plans/knowledge-acquisition-v1.7.md","sha256":"ba6a6d8c7ae80b2b3fc55e1b9d5a6021f6d5c8a7759cb5594d47b3535bda28bf"},
+    {"path":"docs/plans/knowledge-acquisition-v1.8.md","sha256":"1f0dd9466590f57747c7cb26c8ca9714443b83477b224c6336f87f46784e455c"},
+    {"path":"docs/plans/knowledge-acquisition-v1.9.md","sha256":"63092dddd55f5ae0f5e13d279a8534dfa15fb7e8def1a992d4d08f8450de0fc6"},
+    {"path":"docs/plans/knowledge-acquisition-v1.10.md","sha256":"4347f4108a149055c95daad045afc25c5dcebab3f244af091471a72c0e66c9e1"},
+    {"path":"docs/plans/knowledge-acquisition-v1.11.md","sha256":"8f6b75b1e83538fe453282cd9ad31075c15ca30143d974679b948f41b2be9dec"},
+    {"path":"docs/plans/knowledge-acquisition-v1.12.md","sha256":"64616d73e21c250fc3d7723b7f904925001d3ac9571a01d1825c4a4adfdb4479"}
+  ],
+  "review":{"path":"docs/plans/knowledge-acquisition-v1.12.review.md","sha256":"1e18fc2df2a74e6eab19758f0d28a1f54ff6b6937ea380dbba8f8f3560a566ba"},
+  "findings":{"critical":0,"high":0,"semantic_medium":0,"packaging_open":1},
+  "hard_gates":{"passed":[1,2,3,4,5,6,7,8,9],"pending":[10]},
+  "delivery":"untracked_local_workspace_awaiting_authorization"
+}

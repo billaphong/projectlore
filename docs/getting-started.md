@@ -5,6 +5,11 @@ project knowledge remains in human-readable YAML committed to the repository.
 The initializer only writes after an explicit preview and does not approve
 client-owned trust prompts.
 
+For a cold-start procedure that distinguishes executable installation from
+per-repository integration and includes agent handoff and completion criteria,
+use the [agent onboarding runbook](agent-onboarding.md). This guide remains the
+compact command and behavior reference.
+
 ## Install and initialize
 
 Create and activate a virtual environment using the normal command for your

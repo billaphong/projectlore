@@ -30,6 +30,10 @@ Review and approve the generated project MCP and hook files in Claude Code and
 Codex before running `lore doctor projectlore.yaml`. ProjectLore never bypasses
 client-owned trust. See the complete [getting-started guide](docs/getting-started.md)
 for configuration review, expected degradation, troubleshooting, and removal.
+Coding agents starting from a clean machine or target repository should follow
+the [agent onboarding runbook](docs/agent-onboarding.md), including its explicit
+installation-scope, trust, real-client verification, commit, and handoff
+checklists.
 The package-index command
 `python -m pip install projectlore==0.1.0a2` becomes valid only after the owner
 separately authorizes and completes publication.

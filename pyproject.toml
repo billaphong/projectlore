@@ -61,6 +61,7 @@ include = [
   "/README.md",
   "/SECURITY.md",
   "/docs/architecture.md",
+  "/docs/agent-onboarding.md",
   "/docs/client-capabilities.json",
   "/docs/compatibility.md",
   "/docs/extension-sdk.md",
