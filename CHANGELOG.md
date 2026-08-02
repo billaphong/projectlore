@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Added onboarding and passive growth for provenance-bearing project knowledge,
+  with explicit proposal, review, apply, recovery, repair, and compaction.
+- Added a separately versioned, five-tool read-only acquisition MCP sidecar and
+  project-scoped Claude Code and trusted Codex CLI integration.
+- Added clean-wheel offline installation and real-client verification for the
+  `0.1.0a3` candidate.
 - Added execution-bound repository gate evidence 1.0 while retaining 0.1 as a
   frozen, non-promoting compatibility format.
 - Added a normative MCP ToolSpec and corrected `context_for_task.limit` parity.

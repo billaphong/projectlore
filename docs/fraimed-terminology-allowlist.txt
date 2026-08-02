@@ -2,12 +2,16 @@
 # pilot history may retain the proper name "Fraimed". Tests and fixtures are
 # outside the user-facing terminology gate.
 README.md
+docs/agent-onboarding.md
 docs/architecture.md
 docs/compatibility.md
+docs/contracts/knowledge-acquisition-v1.md
 docs/extension-sdk.md
 docs/getting-started.md
 docs/phase-audit.md
 docs/pilots/sienna-campaign-authority.md
+docs/plans/knowledge-acquisition-practical-v2.md
+docs/plans/knowledge-acquisition-v1.md
 docs/product-research-and-plan.md
 docs/release-policy.md
 docs/standalone-rationalization-plan.md

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "projectlore-knowledge-fault-test-support"
+version = "0.6.1"
+requires-python = ">=3.11"
+
+[project.scripts]
+projectlore-fault-generate = "projectlore_fault_support.generator:main"
+projectlore-fault-check = "projectlore_fault_support.model_checker:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/projectlore_fault_support"]

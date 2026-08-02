@@ -12,6 +12,31 @@ from pathlib import Path
 import yaml
 
 from projectlore import __version__
+from projectlore.acquisition.compaction import (
+    apply_compaction,
+    compaction_preview,
+)
+from projectlore.acquisition.models import (
+    ProposalClassification,
+    ReviewDisposition,
+)
+from projectlore.acquisition.onboarding import (
+    onboarding_preview,
+    start_onboarding,
+)
+from projectlore.acquisition.passive import (
+    capture_scan,
+    knowledge_status,
+    next_packet,
+)
+from projectlore.acquisition.proposal import submit_proposal
+from projectlore.acquisition.recovery import (
+    apply_repair,
+    recovery_status,
+    repair_preview,
+)
+from projectlore.acquisition.review import apply_review, review_proposal
+from projectlore.acquisition.schema import render_acquisition_schema
 from projectlore.assurance_report import (
     assess_assurance,
     load_integration_evidence,
@@ -27,7 +52,12 @@ from projectlore.onboarding import (
     initialization_previews,
 )
 from projectlore.policy import PolicyRequest, load_policy_registry, policy_check
-from projectlore.removal import apply_removal, removal_previews
+from projectlore.removal import (
+    acquisition_removal_preview,
+    apply_acquisition_removal,
+    apply_removal,
+    removal_previews,
+)
 from projectlore.schema import render_json_schema, schema_matches
 from projectlore.scope_cache import (
     load_scope_target,
@@ -90,6 +120,13 @@ def build_parser() -> argparse.ArgumentParser:
     schema.add_argument("output", type=Path)
     schema.add_argument("--check", action="store_true")
 
+    acquisition_schema = subparsers.add_parser(
+        "acquisition-schema",
+        help="Generate or check the portable acquisition JSON Schema.",
+    )
+    acquisition_schema.add_argument("output", type=Path)
+    acquisition_schema.add_argument("--check", action="store_true")
+
     initialize = subparsers.add_parser(
         "init",
         help="Preview initialization of a ProjectLore-enabled repository.",
@@ -106,6 +143,90 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("projectlore.yaml"),
         help="Canonical model path: projectlore.yaml or .projectlore/model.yaml.",
     )
+
+    onboard = subparsers.add_parser(
+        "onboard",
+        help="Create immediate repository evidence for a knowledge baseline.",
+    )
+    onboard_subparsers = onboard.add_subparsers(dest="onboard_command", required=True)
+    onboard_start = onboard_subparsers.add_parser(
+        "start", help="Preview or create the initial evidence packet."
+    )
+    onboard_start.add_argument("--apply", action="store_true")
+    onboard_start.add_argument("--root", type=Path, default=Path.cwd())
+    onboard_status = onboard_subparsers.add_parser(
+        "status", help="Inspect onboarding and acquisition state."
+    )
+    onboard_status.add_argument("--root", type=Path, default=Path.cwd())
+
+    knowledge = subparsers.add_parser(
+        "knowledge", help="Propose, review, and apply project knowledge."
+    )
+    knowledge_subparsers = knowledge.add_subparsers(
+        dest="knowledge_command", required=True
+    )
+    knowledge_propose = knowledge_subparsers.add_parser(
+        "propose", help="Submit a complete candidate without applying it."
+    )
+    knowledge_propose.add_argument("candidate", type=Path)
+    knowledge_propose.add_argument("--packet-id", required=True)
+    knowledge_propose.add_argument(
+        "--classification",
+        choices=tuple(item.value for item in ProposalClassification),
+        default=ProposalClassification.ASSERTED.value,
+    )
+    knowledge_propose.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_review = knowledge_subparsers.add_parser(
+        "review", help="Record an explicit digest-bound proposal decision."
+    )
+    knowledge_review.add_argument("proposal_id")
+    knowledge_review.add_argument(
+        "--disposition",
+        required=True,
+        choices=tuple(item.value for item in ReviewDisposition),
+    )
+    knowledge_review.add_argument("--actor", required=True)
+    knowledge_review.add_argument("--revision-note")
+    knowledge_review.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_apply = knowledge_subparsers.add_parser(
+        "apply", help="Apply an accepted review to canonical YAML."
+    )
+    knowledge_apply.add_argument("review_id")
+    knowledge_apply.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_status_parser = knowledge_subparsers.add_parser(
+        "status", help="Inspect passive acquisition state without writing."
+    )
+    knowledge_status_parser.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_scan = knowledge_subparsers.add_parser(
+        "scan", help="Capture one bounded metadata-only repository signal."
+    )
+    knowledge_scan.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_packet = knowledge_subparsers.add_parser(
+        "packet", help="Lease pending passive evidence for agent inspection."
+    )
+    packet_subparsers = knowledge_packet.add_subparsers(
+        dest="packet_command", required=True
+    )
+    packet_next = packet_subparsers.add_parser(
+        "next", help="Return the outstanding packet or lease pending signals."
+    )
+    packet_next.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_recover = knowledge_subparsers.add_parser(
+        "recover", help="Inspect active workflow recovery state without writing."
+    )
+    knowledge_recover.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_repair = knowledge_subparsers.add_parser(
+        "repair", help="Preview or explicitly apply workflow-root repair."
+    )
+    knowledge_repair.add_argument("--apply", action="store_true")
+    knowledge_repair.add_argument("--preview-digest")
+    knowledge_repair.add_argument("--root", type=Path, default=Path.cwd())
+    knowledge_compact = knowledge_subparsers.add_parser(
+        "compact", help="Preview or apply deletion of unreachable workflow files."
+    )
+    knowledge_compact.add_argument("--apply", action="store_true")
+    knowledge_compact.add_argument("--preview-digest")
+    knowledge_compact.add_argument("--root", type=Path, default=Path.cwd())
 
     service_status = subparsers.add_parser(
         "model-status",
@@ -152,6 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Preview removal of generated integration and disposable state.",
     )
     remove.add_argument("--apply", action="store_true")
+    remove.add_argument("--preview-digest")
 
     integration = subparsers.add_parser(
         "integration",
@@ -341,6 +463,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Wrote schema: {args.output}")
         return 0
 
+    if args.command == "acquisition-schema":
+        rendered = render_acquisition_schema()
+        if args.check:
+            if (
+                args.output.is_file()
+                and args.output.read_text(encoding="utf-8") == rendered
+            ):
+                print(f"Acquisition schema is current: {args.output}")
+                return 0
+            print(f"Acquisition schema drift detected: {args.output}")
+            return 1
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(rendered, encoding="utf-8")
+        print(f"Wrote acquisition schema: {args.output}")
+        return 0
+
     if args.command == "init":
         try:
             init_previews = initialization_previews(
@@ -374,6 +512,92 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(result, indent=2))
         return 0
 
+    if args.command == "onboard":
+        try:
+            root = args.root.resolve(strict=True)
+            if args.onboard_command == "status":
+                onboard_result = knowledge_status(root)
+            else:
+                onboard_result = onboarding_preview(root)
+                if args.apply:
+                    signal, packet = start_onboarding(root)
+                    onboard_result.update(
+                        {
+                            "applied": True,
+                            "signal": signal.model_dump(mode="json"),
+                            "packet": packet.model_dump(mode="json"),
+                        }
+                    )
+        except (OSError, RuntimeError, ValueError) as error:
+            parser.error(str(error))
+        print(json.dumps(onboard_result, indent=2))
+        return 0
+
+    if args.command == "knowledge":
+        try:
+            root = args.root.resolve(strict=True)
+            if args.knowledge_command == "propose":
+                proposal = submit_proposal(
+                    root,
+                    args.candidate,
+                    args.packet_id,
+                    classification=ProposalClassification(args.classification),
+                )
+                result = proposal.model_dump(mode="json")
+            elif args.knowledge_command == "review":
+                review = review_proposal(
+                    root,
+                    args.proposal_id,
+                    ReviewDisposition(args.disposition),
+                    args.actor,
+                    revision_note=args.revision_note,
+                )
+                result = review.model_dump(mode="json", exclude_none=True)
+            elif args.knowledge_command == "apply":
+                path = apply_review(root, args.review_id)
+                result = {
+                    "contract_version": "projectlore-knowledge-apply/0.6.1",
+                    "applied": True,
+                    "review_id": args.review_id,
+                    "path": str(path),
+                }
+            elif args.knowledge_command == "scan":
+                signal = capture_scan(root)
+                result = signal.model_dump(mode="json", exclude_none=True)
+            elif args.knowledge_command == "packet":
+                leased_packet = next_packet(root)
+                result = {
+                    "contract_version": "projectlore-packet-next/0.6.1",
+                    "packet": (
+                        None
+                        if leased_packet is None
+                        else leased_packet.model_dump(mode="json")
+                    ),
+                    "missing": leased_packet is None,
+                }
+            elif args.knowledge_command == "recover":
+                result = recovery_status(root)
+            elif args.knowledge_command == "repair":
+                if args.apply:
+                    if args.preview_digest is None:
+                        raise ValueError("--preview-digest is required with --apply")
+                    result = apply_repair(root, args.preview_digest)
+                else:
+                    result = repair_preview(root)
+            elif args.knowledge_command == "compact":
+                if args.apply:
+                    if args.preview_digest is None:
+                        raise ValueError("--preview-digest is required with --apply")
+                    result = apply_compaction(root, args.preview_digest)
+                else:
+                    result = compaction_preview(root)
+            else:
+                result = knowledge_status(root)
+        except (OSError, RuntimeError, ValueError) as error:
+            parser.error(str(error))
+        print(json.dumps(result, indent=2))
+        return 0
+
     if args.command == "integrate":
         integration_previews = instruction_previews(Path.cwd())
         result = {
@@ -396,6 +620,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
 
     if args.command == "remove":
+        if args.preview_digest is not None:
+            if not args.apply:
+                raise ValueError("--preview-digest requires --apply")
+            result = apply_acquisition_removal(Path.cwd(), args.preview_digest)
+            print(json.dumps(result, indent=2))
+            return 0
         previews = removal_previews(Path.cwd())
         result = {
             "preview_version": "projectlore-removal-preview/1.0.0",
@@ -410,7 +640,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 for item in previews
             ],
         }
+        knowledge = Path.cwd() / ".projectlore" / "knowledge"
+        acquisition_present = knowledge.is_dir() and any(
+            path.is_file() and "locks" not in path.relative_to(knowledge).parts
+            for path in knowledge.rglob("*")
+        )
+        if acquisition_present:
+            transaction = acquisition_removal_preview(Path.cwd())
+            result["preview_digest"] = transaction["preview_digest"]
         if args.apply:
+            if acquisition_present:
+                raise ValueError(
+                    "Acquisition removal requires --preview-digest from the preview."
+                )
             apply_removal(previews)
         print(json.dumps(result, indent=2))
         return 0
@@ -483,9 +725,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     path = configure_workflow_target(root, workflow_target)
                     # Old evidence is rejected after target activation even if
                     # interruption occurs before this cleanup.
-                    (root / ".projectlore" / "scope.json").unlink(
-                        missing_ok=True
-                    )
+                    (root / ".projectlore" / "scope.json").unlink(missing_ok=True)
                     (root / ".projectlore" / "workflow-context.json").unlink(
                         missing_ok=True
                     )
@@ -497,9 +737,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "credential_stored": False,
                 }
             elif args.scope_command == "refresh":
-                path, snapshot = asyncio.run(
-                    refresh_scope_from_environment(root)
-                )
+                path, snapshot = asyncio.run(refresh_scope_from_environment(root))
                 result = {
                     "refreshed": True,
                     "path": str(path),
@@ -523,9 +761,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     status=args.status,
                     expires_at=args.expires_at,
                 )
-                context = (
-                    apply_local_declaration(root, preview) if args.apply else None
-                )
+                context = apply_local_declaration(root, preview) if args.apply else None
                 result = {
                     "applied": args.apply,
                     "path": str(preview.path),
@@ -567,9 +803,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 preview = preview_legacy_local_migration(root, workflow_target)
                 migrated = (
-                    apply_legacy_local_migration(root, preview)
-                    if args.apply
-                    else None
+                    apply_legacy_local_migration(root, preview) if args.apply else None
                 )
                 result = {
                     "applied": args.apply,

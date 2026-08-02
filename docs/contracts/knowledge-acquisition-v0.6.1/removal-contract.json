@@ -1,0 +1,139 @@
+{
+  "contract_version": "projectlore-knowledge-removal/0.6.1",
+  "compatibility": "Invoke the existing a087c22 lore remove planner/applicator unchanged for all existing owned artifacts and flags. Acquisition contributes additional entries through the same preview/apply digest transaction. Existing diagnostics, exit codes, preview no-write, --apply requirement, drift preservation and canonical exclusions must retain their frozen tests.",
+  "actions": {
+    "create": {
+      "before": null,
+      "after": "digest required"
+    },
+    "replace": {
+      "before": "digest required",
+      "after": "digest required and different"
+    },
+    "delete": {
+      "before": "digest required",
+      "after": null
+    },
+    "retain": {
+      "before": "digest required",
+      "after": "same digest required"
+    }
+  },
+  "inventory": "Only .projectlore/knowledge and exact acquisition-owned client keys/journal records; never canonical YAML, model entrypoint, AGENTS.md, CLAUDE.md, core MCP/hooks, trust receipts, unknown keys/files.",
+  "refusals": {
+    "PLKA6001": "preview stale",
+    "PLKA6002": "active commit claim",
+    "PLKA6003": "byte drift",
+    "PLKA6004": "ambiguous managed fragment",
+    "PLKA6005": "canonical digest changed",
+    "PLKA6006": "query equivalence failed"
+  },
+  "query_fixtures": [
+    {
+      "id": "homebrew-status",
+      "command": "lore model-status examples/homebrew.project.yaml",
+      "normalization": "retain contract_version,contract_digest,model_digest,model_id,model_version,schema_version,counts; JCS",
+      "expected_jcs": "{\"contract_digest\":\"sha256:6f8b40e8460686f8664b9909f6838857ed30dad1ad556720105e95ac882af302\",\"contract_version\":\"projectlore-tools/0.4.0\",\"counts\":{\"concepts\":2,\"domains\":1,\"relationships\":1,\"rules\":1,\"sources\":1},\"model_digest\":\"sha256:cc045067b8021c894600e9ecd358ca17090449b65d3fda04b163ffba120d818a\",\"model_id\":\"lore:homebrew\",\"model_version\":\"0.1.0\",\"schema_version\":\"0.1.0\"}",
+      "sha256": "1d8a4f0b958341ce83bc53b11b0d4f066c3e2223cc437ff9c9c87d583b4392aa",
+      "command_digest": "sha256:f46c277de194786a5589efb7e695ff4f89fe0cc34e1fe7cff75d0ca839923eb8"
+    },
+    {
+      "id": "homebrew-context-empty",
+      "command": "lore context-for-task examples/homebrew.project.yaml 'fermentation temperature'",
+      "normalization": "retain contract_version,contract_digest,model_digest,task,rules,truncated,missing,sources; JCS",
+      "expected_jcs": "{\"contract_digest\":\"sha256:6f8b40e8460686f8664b9909f6838857ed30dad1ad556720105e95ac882af302\",\"contract_version\":\"projectlore-tools/0.4.0\",\"missing\":true,\"model_digest\":\"sha256:cc045067b8021c894600e9ecd358ca17090449b65d3fda04b163ffba120d818a\",\"rules\":[],\"sources\":[],\"task\":\"fermentation temperature\",\"truncated\":false}",
+      "sha256": "d57f18f7281462f791fd22a2eb5e661670aba1f3c67feacdc3cddc1d5b91bbac",
+      "command_digest": "sha256:c11b2ad15b408c49737cc51d41d485c334be800f953197373d49e3fd8f641e11"
+    },
+    {
+      "id": "forecast-status",
+      "command": "lore model-status examples/homebrew.forecast-trust.project.yaml",
+      "normalization": "retain contract_version,contract_digest,model_digest,model_id,model_version,schema_version,counts; JCS",
+      "expected_jcs": "{\"contract_digest\":\"sha256:6f8b40e8460686f8664b9909f6838857ed30dad1ad556720105e95ac882af302\",\"contract_version\":\"projectlore-tools/0.4.0\",\"counts\":{\"concepts\":2,\"domains\":1,\"relationships\":1,\"rules\":3,\"sources\":4},\"model_digest\":\"sha256:f1dcf33d7f2b7618c832153b1c666d2feb03ac30f380c9607a6098e8106541a2\",\"model_id\":\"lore:homebrew/forecast-trust\",\"model_version\":\"0.1.0\",\"schema_version\":\"0.1.0\"}",
+      "sha256": "4c2b89a50829e495bbe749566a05ac6250e26f40e8f637982817ec67c34882c9",
+      "command_digest": "sha256:429e6f6cc568b5147b15af453d9156ce10a6d806d9538e3a885013fef711a290"
+    }
+  ],
+  "evidence": "Before preview and after apply, independently invoke each installed core CLI command in a new process, normalize, hash, and require expected=before=after. Also require canonical YAML recursive byte manifest unchanged. Receipt stores all three digests, command/contract digest, candidate wheel digest and equal=true; failure rolls no canonical content back because none was writable and returns PLKA6006.",
+  "before_after_calculation": "For each fixture compute SHA-256(exact expected_jcs UTF-8), subprocess before normalized JCS SHA-256, subprocess after normalized JCS SHA-256. Require all three equal individually; compute suite_digest=SHA-256(UTF8('projectlore:removal-query-suite:0.6.1')||00||JCS(sorted [{id,expected,before,after}])).",
+  "executable_action_validation": [
+    "create iff before null, after digest and target absent",
+    "replace iff before/after nonnull unequal and current equals before",
+    "delete iff before nonnull, after null and current equals before",
+    "retain iff before=after nonnull and current equals before",
+    "any other combination PLKA1007 before write"
+  ],
+  "expanded_scenarios": [
+    "no acquisition state",
+    "complete acquisition state",
+    "partial journal",
+    "client-fragment drift",
+    "unknown adjacent keys",
+    "active claim",
+    "canonical mutation race",
+    "crash after each delete",
+    "idempotent rerun",
+    "no verified recovery branch then explicit remove/re-onboard with canonical/query equality"
+  ],
+  "existing_remove_baseline": {
+    "commit": "a087c22baa3206d7dd82b3bf6d2c7b760fa8a0be",
+    "blobs": {
+      "src/projectlore/cli.py": "7e50f345f4156a11e9a21edf15d2092f88292fd8",
+      "src/projectlore/removal.py": "3cd984066a09055bd2baabb2cb2d2f8d336706",
+      "tests/test_removal.py": "96dd02fce72a0e32e8ddd6665ef07cdb63a9584e"
+    },
+    "cli_fixture": "installed lore remove --help plus existing preview/apply snapshots at baseline",
+    "regression": "Run baseline frozen removal tests unchanged against candidate; exact selection nonempty, zero skips/retries, all pass. Compare existing-only preview normalized bytes to baseline golden before acquisition entries are appended."
+  },
+  "query_receipt": {
+    "schema": "schemas.json#/$defs/query_equivalence",
+    "order": [
+      "homebrew-status",
+      "homebrew-context-empty",
+      "forecast-status"
+    ],
+    "record_rule": "sequence 1..3 matches order; expected=before=after per record",
+    "suite_digest": "SHA-256(UTF8('projectlore:removal-query-suite:0.6.1')||00||JCS(records in sequence order))",
+    "expected_records": [
+      {
+        "sequence": 1,
+        "fixture_id": "homebrew-status",
+        "command_digest": "sha256:f46c277de194786a5589efb7e695ff4f89fe0cc34e1fe7cff75d0ca839923eb8",
+        "expected_digest": "sha256:1d8a4f0b958341ce83bc53b11b0d4f066c3e2223cc437ff9c9c87d583b4392aa",
+        "before_digest": "sha256:1d8a4f0b958341ce83bc53b11b0d4f066c3e2223cc437ff9c9c87d583b4392aa",
+        "after_digest": "sha256:1d8a4f0b958341ce83bc53b11b0d4f066c3e2223cc437ff9c9c87d583b4392aa",
+        "equal": true
+      },
+      {
+        "sequence": 2,
+        "fixture_id": "homebrew-context-empty",
+        "command_digest": "sha256:c11b2ad15b408c49737cc51d41d485c334be800f953197373d49e3fd8f641e11",
+        "expected_digest": "sha256:d57f18f7281462f791fd22a2eb5e661670aba1f3c67feacdc3cddc1d5b91bbac",
+        "before_digest": "sha256:d57f18f7281462f791fd22a2eb5e661670aba1f3c67feacdc3cddc1d5b91bbac",
+        "after_digest": "sha256:d57f18f7281462f791fd22a2eb5e661670aba1f3c67feacdc3cddc1d5b91bbac",
+        "equal": true
+      },
+      {
+        "sequence": 3,
+        "fixture_id": "forecast-status",
+        "command_digest": "sha256:429e6f6cc568b5147b15af453d9156ce10a6d806d9538e3a885013fef711a290",
+        "expected_digest": "sha256:4c2b89a50829e495bbe749566a05ac6250e26f40e8f637982817ec67c34882c9",
+        "before_digest": "sha256:4c2b89a50829e495bbe749566a05ac6250e26f40e8f637982817ec67c34882c9",
+        "after_digest": "sha256:4c2b89a50829e495bbe749566a05ac6250e26f40e8f637982817ec67c34882c9",
+        "equal": true
+      }
+    ],
+    "expected_suite_digest": "sha256:13b074e029b517b862ac3210e472d1f4b30430aa884841819b0e4b5388680156"
+  },
+  "lifecycle_receipt": {
+    "schema": "schemas.json#/$defs/lifecycle_receipt",
+    "digest": "digest-registry lifecycle_receipt domain, never generic receipt",
+    "operations": [
+      "repair",
+      "compact",
+      "remove",
+      "quarantine"
+    ],
+    "recovery_link": "recovery-contract remove-re/onboard alternative requires remove lifecycle receipt before new proposal"
+  }
+}

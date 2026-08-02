@@ -1,0 +1,20 @@
+{
+  "attestation_version": "projectlore-acquisition-attestation/0.6.1",
+  "candidate_manifest": "candidate-manifest.json",
+  "candidate_manifest_sha256": "7cacee56a2e0f3fa6bbb3946117aa99c28198b602f1db351795ad53f664cd3ee",
+  "baseline": "a087c22baa3206d7dd82b3bf6d2c7b760fa8a0be",
+  "status": "promoted_technical_contract_unbound_not_release_acceptance",
+  "standalone": true,
+  "claims": [
+    "six cell-bound network receipts required",
+    "distinct lifecycle receipt domain/exclusions/golden",
+    "verified-prior repair and exact refusal/remove-reonboard paths",
+    "complete macOS lock/network/build/offline procedures",
+    "README and semantic version corrected",
+    "KO07/KR05 closed",
+    "unchanged P01-P06 owner policies",
+    "27/27 rows, zero exclusions",
+    "implementation evidence corrected the root/generation digest cycle"
+  ],
+  "self_hash": "absent by no-cycle design"
+}

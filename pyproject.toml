@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "projectlore"
-version = "0.1.0a2"
+version = "0.1.0a3"
 description = "Give every coding agent the same understanding of your project."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,6 +38,7 @@ Source = "https://github.com/billaphong/projectlore"
 [project.optional-dependencies]
 dev = [
   "build>=1.2,<2",
+  "hatchling>=1.27,<2",
   "mypy>=1.14,<2",
   "pytest>=8.3,<9",
   "ruff>=0.9,<1",
@@ -49,9 +50,15 @@ lore = "projectlore.cli:main"
 projectlore-mcp = "projectlore.mcp_server:main"
 projectlore-hook = "projectlore.hook:main"
 projectlore-scope-hook = "projectlore.scope_hook:main"
+projectlore-acquisition-hook = "projectlore.acquisition_hook:main"
+projectlore-acquisition-mcp = "projectlore.acquisition_mcp:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/projectlore"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"examples/homebrew.project.yaml" = "projectlore/corpus/homebrew.project.yaml"
+"examples/homebrew.forecast-trust.project.yaml" = "projectlore/corpus/homebrew.forecast-trust.project.yaml"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -75,14 +82,18 @@ include = [
   "/docs/ui-decision.md",
   "/docs/versioning-and-migrations.md",
   "/examples/contracts/portable.valid.yaml",
+  "/examples/homebrew.project.yaml",
+  "/examples/homebrew.forecast-trust.project.yaml",
   "/pyproject.toml",
   "/schemas/projectlore.schema.json",
+  "/schemas/projectlore-acquisition.schema.json",
   "/src/projectlore",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 88

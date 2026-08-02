@@ -1,0 +1,211 @@
+{
+  "contract_version": "projectlore-acquisition-hook-fixtures/0.6.1",
+  "limits": {
+    "stdin_bytes": 1048576,
+    "depth": 32,
+    "nodes": 100000,
+    "prompt_codepoints": 16384,
+    "paths": 256,
+    "output_bytes": 16384,
+    "wall_ms": 2000
+  },
+  "normalization": {
+    "observed_digest": "SHA-256 of UTF8('projectlore:hook-observation:0.6.1') || 00 || JCS({client,event,repository_id,session_id,changed_paths})",
+    "excluded_raw_fields": [
+      "prompt",
+      "transcript_path",
+      "transcript",
+      "tool_input",
+      "raw_input"
+    ],
+    "changed_paths": "NFC/confined/sorted unique"
+  },
+  "raw_mappings": [
+    {
+      "client": "claude_code",
+      "event": "Stop",
+      "raw": {
+        "hook_event_name": "Stop",
+        "session_id": "s1",
+        "cwd": "C:/repo",
+        "transcript_path": "C:/private/transcript",
+        "stop_hook_active": false,
+        "last_assistant_message": "PRIVATE_CANARY"
+      },
+      "normalized": {
+        "client": "claude_code",
+        "event": "Stop",
+        "session_id": "s1",
+        "changed_paths": [],
+        "repository_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "raw_jcs": "{\"cwd\":\"C:/repo\",\"hook_event_name\":\"Stop\",\"last_assistant_message\":\"PRIVATE_CANARY\",\"session_id\":\"s1\",\"stop_hook_active\":false,\"transcript_path\":\"C:/private/transcript\"}",
+      "raw_jcs_utf8_hex": "7b22637764223a22433a2f7265706f222c22686f6f6b5f6576656e745f6e616d65223a2253746f70222c226c6173745f617373697374616e745f6d657373616765223a22505249564154455f43414e415259222c2273657373696f6e5f6964223a227331222c2273746f705f686f6f6b5f616374697665223a66616c73652c227472616e7363726970745f70617468223a22433a2f707269766174652f7472616e736372697074227d",
+      "valid": true,
+      "observed_digest_preimage_hex": "70726f6a6563746c6f72653a686f6f6b2d6f62736572766174696f6e3a302e362e31007b226368616e6765645f7061746873223a5b5d2c22636c69656e74223a22636c617564655f636f6465222c226576656e74223a2253746f70222c227265706f7369746f72795f6964223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c2273657373696f6e5f6964223a227331227d",
+      "observed_digest": "sha256:98f17d4a0e5479e1c0c51e14dadc730db80b41e059cfab8e283026631b78a884"
+    },
+    {
+      "client": "claude_code",
+      "event": "SessionStart",
+      "raw": {
+        "hook_event_name": "SessionStart",
+        "session_id": "s1",
+        "cwd": "C:/repo",
+        "source": "startup"
+      },
+      "normalized": {
+        "client": "claude_code",
+        "event": "SessionStart",
+        "session_id": "s1",
+        "changed_paths": [],
+        "repository_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "raw_jcs": "{\"cwd\":\"C:/repo\",\"hook_event_name\":\"SessionStart\",\"session_id\":\"s1\",\"source\":\"startup\"}",
+      "raw_jcs_utf8_hex": "7b22637764223a22433a2f7265706f222c22686f6f6b5f6576656e745f6e616d65223a2253657373696f6e5374617274222c2273657373696f6e5f6964223a227331222c22736f75726365223a2273746172747570227d",
+      "valid": true,
+      "observed_digest_preimage_hex": "70726f6a6563746c6f72653a686f6f6b2d6f62736572766174696f6e3a302e362e31007b226368616e6765645f7061746873223a5b5d2c22636c69656e74223a22636c617564655f636f6465222c226576656e74223a2253657373696f6e5374617274222c227265706f7369746f72795f6964223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c2273657373696f6e5f6964223a227331227d",
+      "observed_digest": "sha256:b43f70741100748a2042652e86ba27f7113743f33411cf247f34f3b711474673"
+    },
+    {
+      "client": "codex_cli",
+      "event": "Stop",
+      "raw": {
+        "hook_event_name": "Stop",
+        "session_id": "s2",
+        "cwd": "C:/repo",
+        "turn_id": "t1",
+        "stop_hook_active": false,
+        "last_assistant_message": "PRIVATE_CANARY"
+      },
+      "normalized": {
+        "client": "codex_cli",
+        "event": "Stop",
+        "session_id": "s2",
+        "changed_paths": [],
+        "repository_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "raw_jcs": "{\"cwd\":\"C:/repo\",\"hook_event_name\":\"Stop\",\"last_assistant_message\":\"PRIVATE_CANARY\",\"session_id\":\"s2\",\"stop_hook_active\":false,\"turn_id\":\"t1\"}",
+      "raw_jcs_utf8_hex": "7b22637764223a22433a2f7265706f222c22686f6f6b5f6576656e745f6e616d65223a2253746f70222c226c6173745f617373697374616e745f6d657373616765223a22505249564154455f43414e415259222c2273657373696f6e5f6964223a227332222c2273746f705f686f6f6b5f616374697665223a66616c73652c227475726e5f6964223a227431227d",
+      "valid": true,
+      "observed_digest_preimage_hex": "70726f6a6563746c6f72653a686f6f6b2d6f62736572766174696f6e3a302e362e31007b226368616e6765645f7061746873223a5b5d2c22636c69656e74223a22636f6465785f636c69222c226576656e74223a2253746f70222c227265706f7369746f72795f6964223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c2273657373696f6e5f6964223a227332227d",
+      "observed_digest": "sha256:06f68b2dd6d96a1c784eef895aba2d08152a6e391ee532b33a64c8d0db871a37"
+    },
+    {
+      "client": "codex_cli",
+      "event": "SessionStart",
+      "raw": {
+        "hook_event_name": "SessionStart",
+        "session_id": "s2",
+        "cwd": "C:/repo",
+        "source": "startup"
+      },
+      "normalized": {
+        "client": "codex_cli",
+        "event": "SessionStart",
+        "session_id": "s2",
+        "changed_paths": [],
+        "repository_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "raw_jcs": "{\"cwd\":\"C:/repo\",\"hook_event_name\":\"SessionStart\",\"session_id\":\"s2\",\"source\":\"startup\"}",
+      "raw_jcs_utf8_hex": "7b22637764223a22433a2f7265706f222c22686f6f6b5f6576656e745f6e616d65223a2253657373696f6e5374617274222c2273657373696f6e5f6964223a227332222c22736f75726365223a2273746172747570227d",
+      "valid": true,
+      "observed_digest_preimage_hex": "70726f6a6563746c6f72653a686f6f6b2d6f62736572766174696f6e3a302e362e31007b226368616e6765645f7061746873223a5b5d2c22636c69656e74223a22636f6465785f636c69222c226576656e74223a2253657373696f6e5374617274222c227265706f7369746f72795f6964223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c2273657373696f6e5f6964223a227332227d",
+      "observed_digest": "sha256:28f7275e247669e0e209672025f538643654a625ed4267879428349cb7dfbfdb"
+    }
+  ],
+  "negative": [
+    {
+      "id": "malformed-utf8",
+      "raw_hex": "ff",
+      "result": "PLKA3001 exit 0 no write"
+    },
+    {
+      "id": "depth-33",
+      "generator": "33 nested arrays",
+      "result": "PLKA3001 exit 0 no write"
+    },
+    {
+      "id": "nodes-100001",
+      "generator": "array of 100001 nulls",
+      "result": "PLKA3001 exit 0 no write"
+    },
+    {
+      "id": "prompt-16385",
+      "generator": "16385 Unicode scalar values",
+      "result": "PLKA3001 exit 0 no write"
+    },
+    {
+      "id": "stdin-1048577",
+      "generator": "1048577 bytes",
+      "result": "PLKA3001 exit 0 no write"
+    },
+    {
+      "id": "timeout",
+      "harness": "hold injected child beyond 2000 ms",
+      "result": "kill process group, PLKA3003, exit 0, no partial write"
+    },
+    {
+      "id": "output-overflow",
+      "generator": "diagnostics exceeding 16384 bytes",
+      "result": "emit bounded fixed PLKA3001 envelope <=16384 bytes, exit 0"
+    },
+    {
+      "id": "codex-wrong-event-key",
+      "raw": {
+        "event": "Stop",
+        "session_id": "s2",
+        "cwd": "C:/repo"
+      },
+      "result": "PLKA3001 exit 0 no write",
+      "valid": false
+    },
+    {
+      "id": "unknown-field-raw",
+      "raw_jcs": "{\"cwd\":\"C:/repo\",\"hook_event_name\":\"Stop\",\"mystery\":1,\"session_id\":\"s\"}",
+      "raw_jcs_utf8_hex": "7b22637764223a22433a2f7265706f222c22686f6f6b5f6576656e745f6e616d65223a2253746f70222c226d797374657279223a312c2273657373696f6e5f6964223a2273227d",
+      "result": "PLKA3005 exit 0 no write",
+      "valid": false
+    }
+  ],
+  "privacy_oracle": "Search every persisted byte for unique prompt/transcript canaries and forbidden recursive keys; zero matches. observed_digest recomputation uses only normalized preimage above.",
+  "raw_encoding": "Exact UTF-8 JSON bytes shown by raw_jcs_utf8_hex; one LF may follow on stdin and is excluded from JSON object identity.",
+  "unknown_field_policy": {
+    "rule": "strict allowlist per (client,hook_event_name); any unknown key returns PLKA3005 advisory exit 0 and writes nothing",
+    "allowlists": {
+      "claude_code": {
+        "SessionStart": [
+          "hook_event_name",
+          "session_id",
+          "cwd",
+          "source"
+        ],
+        "Stop": [
+          "hook_event_name",
+          "session_id",
+          "cwd",
+          "transcript_path",
+          "stop_hook_active",
+          "last_assistant_message"
+        ]
+      },
+      "codex_cli": {
+        "SessionStart": [
+          "hook_event_name",
+          "session_id",
+          "cwd",
+          "source"
+        ],
+        "Stop": [
+          "hook_event_name",
+          "session_id",
+          "cwd",
+          "turn_id",
+          "stop_hook_active",
+          "last_assistant_message"
+        ]
+      }
+    },
+    "privacy": "last_assistant_message/transcript_path are parsed only for client compatibility then discarded before normalization/digest/persistence"
+  }
+}

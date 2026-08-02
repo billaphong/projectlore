@@ -58,7 +58,11 @@ def test_core_mcp_contract_remains_frozen() -> None:
 
     assert TOOLS_CONTRACT_VERSION == "projectlore-tools/0.4.0"
     assert (
-        hashlib.sha256((ROOT / "src/projectlore/tool_spec.py").read_bytes()).hexdigest()
+        hashlib.sha256(
+            (ROOT / "src/projectlore/tool_spec.py")
+            .read_text(encoding="utf-8")
+            .encode("utf-8")
+        ).hexdigest()
         == "74264d4a44d49ff35e25de1223c81a1ef58a4d5e2005a13f5a900290acc8f782"
     )
 

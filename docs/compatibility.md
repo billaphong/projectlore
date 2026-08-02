@@ -20,6 +20,11 @@ These minimums are the exact versions exercised locally for the alpha, not a
 claim that earlier versions cannot work. `lore doctor` reports installed-version,
 configuration, startup, process-identity, hook, and local trust-receipt state.
 
+Codex loads project `.codex/` layers only for trusted Git repositories. Verify
+from the repository root with `codex mcp list`; both `projectlore` and
+`projectlore-acquisition` must appear. An untrusted or non-repository fixture is
+not a valid project-MCP compatibility probe.
+
 Codex officially supports project-scoped MCP configuration in trusted
 `.codex/config.toml`, stdio servers, server instructions, and explicit hook
 review. Codex rebuilds its `AGENTS.md` instruction chain at session start.

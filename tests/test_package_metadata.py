@@ -14,13 +14,13 @@ def test_unpublished_candidate_guidance_uses_a_local_artifact() -> None:
         encoding="utf-8"
     )
     assert (
-        "`0.1.0a2` is a prepared release candidate, not an authorized "
+        "`0.1.0a3` is a prepared release candidate, not an authorized "
         "package-index\npublication"
     ) in release_policy
 
-    impossible_command = "python -m pip install projectlore==0.1.0a2"
+    impossible_command = "python -m pip install projectlore==0.1.0a3"
     for relative_path in ("README.md", "docs/getting-started.md"):
         guidance = (root / relative_path).read_text(encoding="utf-8")
-        assert "projectlore-0.1.0a2-py3-none-any.whl" in guidance
+        assert "projectlore-0.1.0a3-py3-none-any.whl" in guidance
         assert guidance.count(impossible_command) == 1
         assert "only after" in guidance[guidance.index(impossible_command) :]

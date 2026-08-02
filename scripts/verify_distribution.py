@@ -37,6 +37,8 @@ REQUIRED_SDIST = {
     "docs/ui-decision.md",
     "docs/versioning-and-migrations.md",
     "examples/contracts/portable.valid.yaml",
+    "examples/homebrew.project.yaml",
+    "examples/homebrew.forecast-trust.project.yaml",
     "pyproject.toml",
     "schemas/projectlore.schema.json",
     "src/projectlore/py.typed",
@@ -95,14 +97,22 @@ def verify(directory: Path) -> None:
     public_examples = sorted(
         name for name in sdist_names if name.startswith("examples/")
     )
-    if public_examples != ["examples/contracts/portable.valid.yaml"]:
+    expected_examples = [
+        "examples/contracts/portable.valid.yaml",
+        "examples/homebrew.forecast-trust.project.yaml",
+        "examples/homebrew.project.yaml",
+    ]
+    if public_examples != expected_examples:
         raise ValueError(f"Unexpected public examples: {public_examples}")
-    example_text = _sdist_file(sdists[0], public_examples[0]).decode("utf-8")
     credential_key = re.compile(
         r"(?im)^\s*(?:api[_-]?key|access[_-]?token|password|secret|credential)\s*:"
     )
-    if credential_key.search(example_text):
-        raise ValueError("Public example contains a credential-shaped field.")
+    for example in public_examples:
+        example_text = _sdist_file(sdists[0], example).decode("utf-8")
+        if credential_key.search(example_text):
+            raise ValueError(
+                f"Public example contains a credential-shaped field: {example}"
+            )
     unexpected_wheel = sorted(
         name
         for name in wheel_names

@@ -9,3 +9,13 @@ default_tools_approval_mode = "approve"
 [mcp_servers.projectlore.env]
 PROJECTLORE_MODEL = "examples/homebrew.forecast-trust.project.yaml"
 PROJECTLORE_FRAIMED_MCP_URL = "https://www.fraimed.ai/api/mcp"
+
+[mcp_servers.projectlore-acquisition]
+command = ".venv/Scripts/python.exe"
+args = ["-I", "-m", "projectlore.acquisition_mcp"]
+cwd = "."
+required = false
+default_tools_approval_mode = "approve"
+
+[mcp_servers.projectlore-acquisition.env]
+PROJECTLORE_ROOT = "."

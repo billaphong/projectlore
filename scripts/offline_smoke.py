@@ -106,6 +106,8 @@ def verify(dist: Path, example: Path, schema: Path) -> None:
     wheels = sorted(dist.resolve().glob("projectlore-*.whl"))
     if len(wheels) != 1:
         raise ValueError("Expected exactly one ProjectLore wheel.")
+    version = wheels[0].name.split("-", 2)[1]
+    requirement = f"projectlore=={version}"
     with tempfile.TemporaryDirectory(prefix="projectlore-alpha-") as raw:
         root = Path(raw)
         wheelhouse = root / "wheelhouse"
@@ -120,7 +122,7 @@ def verify(dist: Path, example: Path, schema: Path) -> None:
                 str(wheelhouse),
                 "--find-links",
                 str(dist.resolve()),
-                "projectlore==0.1.0a2",
+                requirement,
             ]
         )
         environment = root / "venv"
@@ -152,7 +154,7 @@ def verify(dist: Path, example: Path, schema: Path) -> None:
                 "--no-index",
                 "--find-links",
                 str(wheelhouse),
-                "projectlore==0.1.0a2",
+                requirement,
             ]
         )
         _run(

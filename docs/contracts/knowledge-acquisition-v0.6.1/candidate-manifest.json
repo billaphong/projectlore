@@ -1,0 +1,33 @@
+{
+  "manifest_version": "projectlore-acquisition-candidate-manifest/0.6.1",
+  "baseline": "a087c22baa3206d7dd82b3bf6d2c7b760fa8a0be",
+  "standalone": true,
+  "hash": "SHA-256 exact bytes",
+  "no_cycle": "manifest and attestation excluded; attestation hashes manifest; neither self-hashes",
+  "files": {
+    "README.md": "b25b50a15f16a03a7da6d513c2960ca715f3ae7563249b3f96b6afe6d0c78d0f",
+    "decision-ledger.json": "3f4333342fc2f2fcdbb8d606e44a07cd41d37c63efbc74c3389ff21539a83549",
+    "digest-registry.json": "5d47fccf72aefc56894a3a9d49e9d325e3442e0f19d5ba0fefd9435bcbad7b24",
+    "fault-contract.json": "103476653c2e585180696c34436769381d65fc01237109bf2fc2412e0faafa72",
+    "hook-fixtures.json": "d187944820360db92ace57618c5c989135ef3cae8eafa1722b255cc9fbf32469",
+    "mcp-fixtures.json": "dc5dae8a9b3a98add214d3a08269a77e7cf4f1e03621250c8fe190ca72697dd7",
+    "mcp-registry.json": "5b180b46235a731bdd037bd88903273b5312df07cc8cb08d96485ea8fe2a1c1d",
+    "migration-registry.json": "88810517c4aa10322f91dc6bfbfcf2b5a4dc512243c7d8248376d62b2d0bc6d4",
+    "package-proof.json": "78ec5b7394da1b317ac0ba55613996b752bf0c6bf16d6016b197b00e8beae8b1",
+    "platform-renderer.json": "1e5fe7fa7db6091bfd44d862873c8ffdc6aa2b896dfcddd9f1090417c5c23e27",
+    "recovery-contract.json": "fb54ead77b35481181fce93c60cff5d38fea814d5611a80e6d7fb1df31467f20",
+    "removal-contract.json": "850931ba682d51d034806e49c93c5838bbd8e00489bf6760d989bcd947c6b8f4",
+    "requirement-mapping.json": "f68c14b7d5ca8043d6df1848720d0a2cbecf3aa1e6b6184fc608e83ba0210482",
+    "research-sources.md": "8990e552788642aeae1a54be8b057974432403379f05dc81186a5f979e5f66ac",
+    "schemas.json": "62e6d6ff07352170249d8da1f6eddcb8ddffe44ef62b0a9505cf30bb934715e0",
+    "semantic-validator.json": "b191ccc72311c02c8c0956290ef23b2b98a8fdcce991181fb8e235a615ff9a10"
+  },
+  "readiness": "unbound; acceptance forbidden until aggregate binds six client and six network cells plus all candidate evidence",
+  "reconciliation": {
+    "rows": 27,
+    "mapped": 27,
+    "exclusions": 0,
+    "required_client_cells": 6,
+    "required_network_cells": 6
+  }
+}

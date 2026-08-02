@@ -12,7 +12,7 @@ ProjectLore has an executable installation and a separate project integration:
 
 | Scope | Contains | Recommended use |
 | --- | --- | --- |
-| Python environment | `lore`, `projectlore-mcp`, `projectlore-hook`, and `projectlore-scope-hook` | Install once in an environment available to the agent clients. |
+| Python environment | `lore`, both ProjectLore MCP servers, and all three hooks | Install once in an environment available to the agent clients. |
 | Target Git repository | Canonical model, MCP configuration, hooks, and managed agent instructions | Initialize separately in every project that should use ProjectLore. |
 
 Installing the package does not modify a target repository. Initializing a
@@ -29,7 +29,7 @@ Before changing a target project, confirm:
 - Claude Code 2.1.220 or newer and/or Codex CLI 0.146.0 or newer is installed;
 - the person responsible for the repository can review project MCP and hook
   configuration; and
-- the ProjectLore `0.1.0a2` wheel or exact source checkout is available.
+- the ProjectLore `0.1.0a3` wheel or exact source checkout is available.
 
 The supported alpha matrix is CPython 3.11 and 3.13 on Windows, Ubuntu, and
 macOS. Other Python 3.11+ versions are expected to work but are not release
@@ -38,39 +38,37 @@ access for its standalone core.
 
 ## 1. Obtain and install the alpha
 
-`0.1.0a2` is not published to a package index. Do not run
-`pip install projectlore==0.1.0a2`. Use one of these reviewed paths.
+`0.1.0a3` is not published to a package index. Do not run
+`pip install projectlore==0.1.0a3`. Use one of these reviewed paths.
 
 ### Option A: install the verified wheel
 
-Download the `projectlore-0.1.0a2` artifact from the successful GitHub Actions
-run for source commit
-`7354658a7e1424f18fdc5228e942371a781dc8af`. Its expected SHA-256 values are:
-
-- wheel: `0DB75F8172B61791F2B1A5A2B305AB5A1F61F8A24F94D2933B3F8133C4C37AD4`
-- source archive: `2FE70FFDEDFEF6A743DE2FF9E27668849BAA1E34E875F008294A603A7DA4F1AE`
+Download the `projectlore-0.1.0a3` artifact only from a successful workflow for
+the reviewed source commit. Compare its published SHA-256 receipt before
+installation. Until that workflow exists, build from the exact checkout using
+Option B; do not reuse hashes from an earlier alpha.
 
 Verify the downloaded wheel before installing it. PowerShell example:
 
 ```powershell
-Get-FileHash .\projectlore-0.1.0a2-py3-none-any.whl -Algorithm SHA256
-python -m venv C:\Tools\projectlore-0.1.0a2
-C:\Tools\projectlore-0.1.0a2\Scripts\python.exe -m pip install `
-  .\projectlore-0.1.0a2-py3-none-any.whl
+Get-FileHash .\projectlore-0.1.0a3-py3-none-any.whl -Algorithm SHA256
+python -m venv C:\Tools\projectlore-0.1.0a3
+C:\Tools\projectlore-0.1.0a3\Scripts\python.exe -m pip install `
+  .\projectlore-0.1.0a3-py3-none-any.whl
 ```
 
 POSIX shell example:
 
 ```shell
-sha256sum ./projectlore-0.1.0a2-py3-none-any.whl
-python -m venv "$HOME/.local/share/projectlore/0.1.0a2"
-"$HOME/.local/share/projectlore/0.1.0a2/bin/python" -m pip install \
-  ./projectlore-0.1.0a2-py3-none-any.whl
+sha256sum ./projectlore-0.1.0a3-py3-none-any.whl
+python -m venv "$HOME/.local/share/projectlore/0.1.0a3"
+"$HOME/.local/share/projectlore/0.1.0a3/bin/python" -m pip install \
+  ./projectlore-0.1.0a3-py3-none-any.whl
 ```
 
 Add that environment's executable directory to the shell `PATH`, or always
 launch Claude Code and Codex from a shell where the environment is activated.
-The generated alpha configuration invokes the four console commands by name.
+The generated alpha configuration invokes six console commands by name.
 An environment dedicated to ProjectLore is preferable to an unrelated
 application's virtual environment.
 
@@ -106,12 +104,11 @@ lore --version
 lore --help
 ```
 
-Also confirm that `projectlore-mcp`, `projectlore-hook`, and
-`projectlore-scope-hook` resolve from the same shell. On Windows use
-`Get-Command lore, projectlore-mcp, projectlore-hook, projectlore-scope-hook`;
-on POSIX use `command -v` for each name. Do not launch `projectlore-mcp` as an
-interactive probe: it is a stdio server and waits for MCP input. The complete
-startup check occurs in `lore doctor` after initialization.
+Also confirm that `projectlore-mcp`, `projectlore-acquisition-mcp`,
+`projectlore-hook`, `projectlore-scope-hook`, and
+`projectlore-acquisition-hook` resolve from the same shell. Do not launch either
+MCP command as an interactive probe: stdio servers wait for MCP input. The
+complete startup check occurs after initialization.
 
 If an editable install has `lore` but is missing a newer entry point, refresh
 its generated console scripts before diagnosing the package or initializer:
@@ -120,7 +117,7 @@ its generated console scripts before diagnosing the package or initializer:
 python -m pip install -e .
 ```
 
-Then repeat the four-command resolution check. A target repository is not ready
+Then repeat the six-command resolution check. A target repository is not ready
 until every command referenced by its generated MCP and hook configuration is
 available to the client process.
 
@@ -205,11 +202,17 @@ ProjectLore cannot approve Claude Code or Codex trust prompts. Review the exact
 project files first, then open each client from the target repository in a shell
 where the ProjectLore commands are on `PATH`.
 
+Codex ignores project `.codex/config.toml`, `.codex/hooks.json`, and local rules
+until the Git repository is trusted. Run Codex from the repository root, review
+and accept its trust prompt, then use `codex mcp list` to confirm both
+`projectlore` and `projectlore-acquisition`. A missing server in an untrusted or
+non-Git scratch directory is expected and is not an MCP startup failure.
+
 Confirm that:
 
 - the MCP command is `projectlore-mcp`;
 - `PROJECTLORE_MODEL` names the intended repository-relative model;
-- the hooks invoke only `projectlore-hook` and `projectlore-scope-hook` with the
+- the hooks invoke only the three documented ProjectLore hook commands with the
   documented timeouts;
 - unrelated client settings were preserved; and
 - the client identifies the configuration as project-scoped.

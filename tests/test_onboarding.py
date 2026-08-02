@@ -11,6 +11,7 @@ import pytest
 from projectlore.onboarding import (
     apply_initialization,
     initialization_previews,
+    resume_initialization,
 )
 from projectlore.validation import validate_path
 
@@ -82,6 +83,41 @@ def test_initialization_preserves_unrelated_client_configuration(
     assert codex_hooks["custom"] is True
     assert 'model = "gpt-test"' in codex_config
     assert 'command = "projectlore-mcp"' in codex_config
+    assert 'command = "projectlore-acquisition-mcp"' in codex_config
+    assert 'PROJECTLORE_ROOT = "."' in codex_config
+
+
+def test_initialization_upgrades_legacy_scope_hook_without_duplicate(
+    tmp_path: Path,
+) -> None:
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir()
+    legacy = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "projectlore-scope-hook",
+                            "timeout": 15,
+                            "statusMessage": "Refreshing ProjectLore workflow scope",
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    settings.write_text(json.dumps(legacy), encoding="utf-8")
+    apply_initialization(initialization_previews(tmp_path, project_name="Acme"))
+    value = json.loads(settings.read_text(encoding="utf-8"))
+    session = value["hooks"]["SessionStart"]
+    assert len(session) == 1
+    commands = [item["command"] for item in session[0]["hooks"]]
+    assert commands == [
+        "projectlore-scope-hook",
+        "projectlore-acquisition-hook --client claude_code --root .",
+    ]
 
 
 def test_initialization_rejects_conflicts_and_intervening_drift(
@@ -100,6 +136,38 @@ def test_initialization_rejects_conflicts_and_intervening_drift(
     (tmp_path / "AGENTS.md").write_text("# Intervening edit\n", encoding="utf-8")
     with pytest.raises(ValueError, match="drift"):
         apply_initialization(previews)
+
+
+def test_initialization_resumes_digest_bound_journal(tmp_path: Path) -> None:
+    previews = initialization_previews(tmp_path, project_name="Acme")
+    changed = [item for item in previews if item.changed]
+    first = changed[0]
+    first.path.parent.mkdir(parents=True, exist_ok=True)
+    first.path.write_text(first.content, encoding="utf-8")
+    journal = tmp_path / ".projectlore" / "integration-journal.json"
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    journal.write_text(
+        json.dumps(
+            {
+                "contract_version": "projectlore-integration-journal/0.6.1",
+                "entries": [
+                    {
+                        "path": item.path.relative_to(tmp_path).as_posix(),
+                        "before_digest": item.before_digest,
+                        "after_digest": item.after_digest,
+                        "content": item.content,
+                    }
+                    for item in changed
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    resume_initialization(tmp_path)
+    assert not journal.exists()
+    assert all(
+        item.path.read_text(encoding="utf-8") == item.content for item in changed
+    )
 
 
 def test_installed_hook_entrypoint_discovers_canonical_model(
