@@ -1,0 +1,16 @@
+{
+  "package_id": "projectlore-knowledge-acquisition",
+  "package_version": "1.0.0",
+  "repository_revision": "7354658a7e1424f18fdc5228e942371a781dc8af",
+  "artifacts": [
+    {
+      "path": "docs/plans/knowledge-acquisition-v1.md",
+      "sha256": "9cd6821a0578c4b24d6748966d94942c9ad4b3e08bbbd4cae9abbe39cf09fca0"
+    },
+    {
+      "path": "docs/plans/knowledge-acquisition-v1.review.md",
+      "sha256": "90d7dfb74d9fcee3dcec7c8bd3f3ec8b40713747ea5fd2eac07d2d706e783baf"
+    }
+  ],
+  "verdict": "not_ready"
+}

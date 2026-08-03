@@ -1,0 +1,104 @@
+{
+  "contract_version": "projectlore-acquisition-reconciliation/0.6.1",
+  "count": 27,
+  "status": "proposed executable oracles; acceptance requires package-proof verified state",
+  "rows": {
+    "KA-01": [
+      "README canonical invariant",
+      "core-read filesystem/query digest oracle"
+    ],
+    "KA-02": [
+      "schemas signal/proposal",
+      "package corpus fresh/existing bootstrap bytes"
+    ],
+    "KA-03": [
+      "schemas review conditional",
+      "semantic full-byte vectors"
+    ],
+    "KA-04": [
+      "fault state table/all phase-failure model"
+    ],
+    "KA-05": [
+      "hook raw bytes/bounds/privacy/kill fixtures"
+    ],
+    "KA-06": [
+      "SessionStart mappings",
+      "packet/generation schemas and race corpus"
+    ],
+    "KA-07": [
+      "review/receipt/transition schemas",
+      "A-B-A/restart corpus"
+    ],
+    "KA-08": [
+      "root/generation schemas",
+      "fault atomic workflow root traces"
+    ],
+    "KA-09": [
+      "fault locks/state generator/model checker"
+    ],
+    "KA-10": [
+      "MCP registry/wire fixtures",
+      "test-support production absence"
+    ],
+    "KA-11": [
+      "six-cell platform renderer fragments",
+      "six exact client receipt matrix and aggregate readiness"
+    ],
+    "KA-12": [
+      "removal action/refusal/query/regression fixtures"
+    ],
+    "KA-13": [
+      "provenance schemas",
+      "semantic graph/privacy rules"
+    ],
+    "KA-14": [
+      "aggregate readiness includes six client and six cell-bound network receipts",
+      "macOS/Windows/Linux build, lock, network, offline and candidate evidence"
+    ],
+    "KO-01": [
+      "proposal/status/journal schemas",
+      "bootstrap/apply/integration corpus"
+    ],
+    "KO-02": [
+      "raw Stop fixtures and semantic boundary codes"
+    ],
+    "KO-03": [
+      "packet typed schema/concurrency/overflow corpus"
+    ],
+    "KO-04": [
+      "review conditional full bytes/digests"
+    ],
+    "KO-05": [
+      "fault Cartesian failures/crash recovery"
+    ],
+    "KO-06": [
+      "MCP canonical schema equality/digests",
+      "initialize/list/call/page/stale/error/status provenance"
+    ],
+    "KO-07": [
+      "preview/journal/conflict/lifecycle receipt and distinct digest domain",
+      "verified-prior repair, ambiguous/no-branch refusal, explicit remove/re-onboard, compact/quarantine corpus"
+    ],
+    "KR-01": [
+      "fault preactivation selectors retain old"
+    ],
+    "KR-02": [
+      "claimed-old retry/claim_failed model states"
+    ],
+    "KR-03": [
+      "claimed-new mandatory roll-forward model states"
+    ],
+    "KR-04": [
+      "platform integration hash journal/drift/client receipt"
+    ],
+    "KR-05": [
+      "recovery-contract deterministic branch evidence/atomic activation",
+      "PLKA6007/6008/6009/6010 refusal paths and remove/re-onboard query equivalence"
+    ],
+    "KR-06": [
+      "ordered three-query receipt/suite digest",
+      "baseline existing-remove blobs/regression oracle"
+    ]
+  },
+  "reconciliation": "14 KA + 7 KO + 6 KR = 27; 27 mapped; zero exclusions; no row passes on a null candidate hash, missing fixture, skip, indeterminate, or client non-success."
+}

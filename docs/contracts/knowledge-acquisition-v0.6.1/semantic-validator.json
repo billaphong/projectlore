@@ -1,0 +1,259 @@
+{
+  "contract_version": "projectlore-acquisition-semantic-validator/0.6.1",
+  "execution_order": [
+    "UTF-8 decode strictly",
+    "JSON parse with max bytes/depth/nodes",
+    "Draft 2020-12 structural validation",
+    "Unicode/path/time semantic validation",
+    "set uniqueness/order and cross-object identity",
+    "privacy scan",
+    "digest verification",
+    "state/reference/transaction validation"
+  ],
+  "codes": {
+    "PLKA1001": "unknown/unsupported persisted contract version",
+    "PLKA1002": "digest mismatch",
+    "PLKA1003": "duplicate set member",
+    "PLKA1004": "noncanonical set order",
+    "PLKA1005": "timestamp is not valid UTC Z",
+    "PLKA1006": "path is not NFC normalized/confined relative UTF-8 <=1024 bytes",
+    "PLKA1007": "conditional field violation",
+    "PLKA1008": "unsupported format; no migration is registered",
+    "PLKA2001": "reference missing",
+    "PLKA2002": "workflow fork",
+    "PLKA3001": "hook byte/depth/node/prompt/output bound",
+    "PLKA3002": "hook path invalid",
+    "PLKA3003": "hook timeout/kill",
+    "PLKA3004": "privacy field persistence attempted",
+    "PLKA4001": "MCP invalid arguments",
+    "PLKA4002": "MCP missing identity",
+    "PLKA4003": "MCP malformed state",
+    "PLKA4004": "MCP stale cursor",
+    "PLKA4005": "MCP internal error",
+    "PLKA5001": "client missing",
+    "PLKA5002": "client version unsupported",
+    "PLKA5003": "trust unverified",
+    "PLKA5004": "integration drift",
+    "PLKA5005": "integration partial",
+    "PLKA5006": "executable mismatch",
+    "PLKA6001": "stale preview",
+    "PLKA6002": "active claim",
+    "PLKA6003": "removal drift",
+    "PLKA6004": "ambiguous fragment",
+    "PLKA6005": "canonical changed",
+    "PLKA6006": "query equivalence failed",
+    "PLKA7001": "fault plan invalid",
+    "PLKA7002": "unsupported neither observation",
+    "PLKA1010": "uncommitted acquisition proposal format quarantined",
+    "PLKA3005": "unknown raw hook field",
+    "PLKA6007": "no verified prior generation",
+    "PLKA6008": "branch evidence invalid",
+    "PLKA6009": "repair preview stale",
+    "PLKA6010": "ambiguous verified fork",
+    "PLKA6011": "re-onboarding proposal absent"
+  },
+  "allocation": "Only codes enumerated above are valid in 0.6.1; unknown PLKA numbers fail contract validation. Messages are bounded/non-normative.",
+  "path_algorithm": [
+    "strict UTF-8 decode",
+    "require Unicode NFC equality",
+    "replace is forbidden rather than normalizing backslash",
+    "reject empty, absolute, drive, UNC, NUL, '.', '..', empty segments",
+    "require encoded length 1..1024",
+    "join to trusted physical root without following symlinks",
+    "resolve each existing ancestor and require commonpath equals physical root",
+    "creation target parent must exist, be confined and symlink-free"
+  ],
+  "privacy": "Persisted objects reject keys prompt, transcript, transcript_path, source_text, excerpt, content and raw_input recursively. Hook normalization may read bounded prompt/transcript_path but must discard before observed_digest/persistence.",
+  "negative_vectors": [
+    {
+      "id": "offset-time",
+      "value": "2026-08-01T01:02:03-05:00",
+      "code": "PLKA1005"
+    },
+    {
+      "id": "leap-second",
+      "value": "2026-08-01T01:02:60Z",
+      "code": "PLKA1005"
+    },
+    {
+      "id": "decomposed-path",
+      "value": "docs/eÃƒÅ’Ã‚Â.txt",
+      "code": "PLKA1006"
+    },
+    {
+      "id": "utf8-path-1025",
+      "generator": "'ÃƒÆ’Ã‚Â©' repeated 513 gives 1026 UTF-8 bytes",
+      "code": "PLKA1006"
+    },
+    {
+      "id": "parent-path",
+      "value": "a/../b",
+      "code": "PLKA1006"
+    },
+    {
+      "id": "duplicate-id",
+      "value": [
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "code": "PLKA1003"
+    },
+    {
+      "id": "reverse-order",
+      "value": [
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "code": "PLKA1004"
+    },
+    {
+      "id": "accept-with-note",
+      "value": {
+        "disposition": "accept",
+        "revision_note": "x"
+      },
+      "code": "PLKA1007"
+    },
+    {
+      "id": "persist-prompt",
+      "value": {
+        "prompt": "canary"
+      },
+      "code": "PLKA3004"
+    },
+    {
+      "id": "unknown-code",
+      "value": {
+        "code": "PLKA1999"
+      },
+      "code": "PLKA1007"
+    },
+    {
+      "id": "invalid-calendar",
+      "input_utf8_hex": "7b226163746f72223a226f776e6572222c22636f6e74726163745f76657273696f6e223a2270726f6a6563746c6f72652d6b6e6f776c656467652d7265766965772f302e342e30222c22646563696465645f6174223a22323032362d30322d33305430303a30303a30305a222c22646973706f736974696f6e223a22616363657074222c2270726f706f73616c5f646967657374223a227368613235363a63636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363222c2270726f706f73616c5f6964223a227368613235363a62626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222c227265766965775f6964223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161227d",
+      "input_sha256": "0867ba01b1a71f0cb059ef1fa71e5fb47a12bc27d3ed72dcb0d2b5b1ace20513",
+      "expected_codes": [
+        "PLKA1005"
+      ]
+    }
+  ],
+  "calendar_algorithm": [
+    "match UTC-Z lexical schema",
+    "parse proleptic Gregorian year/month/day without locale",
+    "require month 1..12",
+    "days=31/30 or February 28 plus leap day iff year divisible by 4 and not 100 unless divisible by 400",
+    "reject leap second 60",
+    "parse fractional seconds as decimal digits without floating point",
+    "round-trip to identical lexical components; no normalization"
+  ],
+  "graph_algorithm": [
+    "index every object by content ID; duplicate ID with unequal bytes PLKA2002",
+    "build directed edges owner->referenced ID with edge labels sorted UTF-8",
+    "missing target PLKA2001",
+    "Tarjan SCC traversal starting IDs UTF-8 sorted and neighbors (label,target) sorted; SCC size>1 or self-loop PLKA2002 unless transition chain schema explicitly permits predecessor edge",
+    "topological Kahn order using UTF-8 ID min-heap",
+    "validate provenance reachability, generation/root membership, transition causality and exactly one outstanding packet",
+    "diagnostics sort by code,path UTF-8,object ID; emit one per violation key"
+  ],
+  "cross_field_rules": [
+    "accept/reject forbid revision fields; revise requires note and exact released IDs",
+    "create/replace/delete/retain digest nullability/equality conditions",
+    "receipt preview digest and operation equal applied journal",
+    "canonical before=after for repair/compact/remove/quarantine and every non-accept operation",
+    "empty MCP page still has state provenance",
+    "prompt/transcript fields never enter observed digest or persistence",
+    "repair applicable=true requires exactly one selected verified root, one atomic replace action and no conflicts; false requires selected_root null, zero entries and at least one conflict",
+    "lifecycle repair/remove receipt requires canonical_before=canonical_after and exact ordered three-query suite equality"
+  ],
+  "full_byte_vectors": [
+    {
+      "id": "positive-status",
+      "input_utf8_hex": "7b2263616e6f6e6963616c5f6d6f64656c5f646967657374223a6e756c6c2c22636f6e74726163745f76657273696f6e223a2270726f6a6563746c6f72652d6b6e6f776c656467652d7374617475732f302e362e31222c22646961676e6f7374696373223a5b5d2c226e6578745f616374696f6e223a226f6e626f6172645f7374617274222c227374617465223a226d697373696e67227d",
+      "input_sha256": "0d12da0e0eb9e5cd38422300fa824c5173513d6e7317e7d215cff069d086720d",
+      "expected_codes": []
+    },
+    {
+      "id": "invalid-calendar",
+      "input_utf8_hex": "7b226163746f72223a226f776e6572222c22636f6e74726163745f76657273696f6e223a2270726f6a6563746c6f72652d6b6e6f776c656467652d7265766965772f302e362e31222c22646563696465645f6174223a22323032362d30322d33305430303a30303a30305a222c22646973706f736974696f6e223a22616363657074222c2270726f706f73616c5f646967657374223a227368613235363a63636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363222c2270726f706f73616c5f6964223a227368613235363a62626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222c227265766965775f6964223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161227d",
+      "input_sha256": "766e02d6ec26e5116138b79c9936d7c8ee1da227df371e661e57e02fc8ada99d",
+      "expected_codes": [
+        "PLKA1005"
+      ]
+    }
+  ],
+  "positive_vectors": [
+    {
+      "id": "positive-status",
+      "input_utf8_hex": "7b2263616e6f6e6963616c5f6d6f64656c5f646967657374223a6e756c6c2c22636f6e74726163745f76657273696f6e223a2270726f6a6563746c6f72652d6b6e6f776c656467652d7374617475732f302e342e30222c22646961676e6f7374696373223a5b5d2c226e6578745f616374696f6e223a226f6e626f6172645f7374617274222c227374617465223a226d697373696e67227d",
+      "input_sha256": "b7f38268c200ea8114ca4b61509ef5e849bddee3c648f0542ce96d5c93a83531",
+      "expected_codes": []
+    },
+    {
+      "id": "leap-day",
+      "value": "2028-02-29T23:59:59.1Z",
+      "expected_codes": []
+    }
+  ],
+  "diagnostic_type": {
+    "schema": "schemas.json#/$defs/diagnostic",
+    "identity_key": [
+      "code",
+      "path or empty",
+      "object_id or empty"
+    ],
+    "ordering": "code then normalized path UTF-8 then object ID",
+    "deduplication": "one diagnostic per identity key",
+    "typo_correction": "The only public spelling is diagnostics (plural array) and diagnostic (one object); diagnotic/diagnositics are invalid unknown fields PLKA1007"
+  },
+  "candidate_uniqueness": {
+    "key": "JCS array [base_model_digest,candidate.candidate_digest,evidence_ids sorted ascending UTF-8]",
+    "scope": "all nonterminal proposals in one workflow root",
+    "duplicate": "same key returns existing proposal ID without write; unequal proposal with same key PLKA2002"
+  },
+  "action_trace_semantics": {
+    "actions": [
+      "create",
+      "replace",
+      "delete",
+      "retain"
+    ],
+    "preconditions": {
+      "create": "before null, after digest, target absent",
+      "replace": "before/after digests unequal, current=before",
+      "delete": "before digest, after null, current=before",
+      "retain": "before=after digest, current=before"
+    },
+    "trace": "sequence-ordered {sequence,operation,path,before,after,result}; sequence starts 1 contiguous; operation/path pair unique except compensation cites original sequence",
+    "failure": "first failed action stops later actions; journal partial; compensation only reverse order and current=after"
+  },
+  "full_negative_raw_bytes": [
+    {
+      "id": "bad-date",
+      "utf8": "\"2026-02-30T00:00:00Z\"",
+      "code": "PLKA1005",
+      "utf8_hex": "22323032362d30322d33305430303a30303a30305a22",
+      "sha256": "4f954b5f4360fb30457afecf2557fc66caf330ca3b6b8aeef1b79cb7f861e87a"
+    },
+    {
+      "id": "unknown-hook-field",
+      "utf8": "{\"cwd\":\"C:/repo\",\"hook_event_name\":\"Stop\",\"mystery\":1,\"session_id\":\"s\"}",
+      "code": "PLKA3005",
+      "utf8_hex": "7b22637764223a22433a2f7265706f222c22686f6f6b5f6576656e745f6e616d65223a2253746f70222c226d797374657279223a312c2273657373696f6e5f6964223a2273227d",
+      "sha256": "f94bf6aad9a00fc8a9d089cd8d68273ac16affd7defe48b589216725dabe7fab"
+    },
+    {
+      "id": "proposal-v04",
+      "utf8": "{\"contract_version\":\"projectlore-knowledge-root/0.4.0\"}",
+      "code": "PLKA1010",
+      "utf8_hex": "7b22636f6e74726163745f76657273696f6e223a2270726f6a6563746c6f72652d6b6e6f776c656467652d726f6f742f302e342e30227d",
+      "sha256": "3fbf1cf373971bd6ac5f6aacc935386315edd0aabfa2be58961026768b202a0b"
+    },
+    {
+      "id": "duplicate-candidate",
+      "utf8": "{\"base_model_digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"candidate_digest\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"evidence_ids\":[]}",
+      "code": "PLKA2002",
+      "utf8_hex": "7b22626173655f6d6f64656c5f646967657374223a227368613235363a61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c2263616e6469646174655f646967657374223a227368613235363a62626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262222c2265766964656e63655f696473223a5b5d7d",
+      "sha256": "6d6fb621ee7afc1711ffafeb4b2d170cd677e8614ae2aba533ee49804e7a8671"
+    }
+  ]
+}

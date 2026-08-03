@@ -1,0 +1,16 @@
+{
+  "package_id":"projectlore-knowledge-acquisition","version":"1.7.0","verdict":"not_ready","score":84,
+  "baseline_commit":"7354658a7e1424f18fdc5228e942371a781dc8af",
+  "ordered_plan_components":[
+    {"path":"docs/plans/knowledge-acquisition-v1.md","sha256":"9cd6821a0578c4b24d6748966d94942c9ad4b3e08bbbd4cae9abbe39cf09fca0"},
+    {"path":"docs/plans/knowledge-acquisition-v1.1.md","sha256":"742408423f501243dc8be46a1dcd6631f239d5b55bb696ce880b2e3c39846130"},
+    {"path":"docs/plans/knowledge-acquisition-v1.2.md","sha256":"0cd71d22946362c758737c83a63bf70a6c0c5084a8b08db3c05e98312368480c"},
+    {"path":"docs/plans/knowledge-acquisition-v1.3.md","sha256":"2faca99fecb5be954a24a2eef48ca8298de7b859c17206c8a128a4d74acc9328"},
+    {"path":"docs/plans/knowledge-acquisition-v1.4.md","sha256":"f6a8e87727a413f115d6757dfe457a04c0fcacf56d8e021185edebfa419f2009"},
+    {"path":"docs/plans/knowledge-acquisition-v1.5.md","sha256":"e48b997141ba1c37913979be3c6d709b91ea67830a80acbcfba34410b0f6afbb"},
+    {"path":"docs/plans/knowledge-acquisition-v1.6.md","sha256":"8f5abc8f696783c899a73a32f0f7aa794277ad4dffd53806a26197076cc71485"},
+    {"path":"docs/plans/knowledge-acquisition-v1.7.md","sha256":"ba6a6d8c7ae80b2b3fc55e1b9d5a6021f6d5c8a7759cb5594d47b3535bda28bf"}
+  ],
+  "review":{"path":"docs/plans/knowledge-acquisition-v1.7.review.md","sha256":"f58902f9be905125bd559d1ba7fcdb19e79a3d9e6990273706ce686a8ec43b47"},
+  "open_findings":["KA-REV17-001","KA-REV17-002","KA-REV17-003"]
+}

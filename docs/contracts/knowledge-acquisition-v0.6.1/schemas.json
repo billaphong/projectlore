@@ -1,0 +1,3099 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://projectlore.ai/contracts/proposed/knowledge-acquisition/0.6.1/schemas.json",
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9])(\\.[0-9]+)?Z$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/|[A-Za-z]:|//)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\u0000]+$"
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "pattern": "^PLKA[1-7][0-9]{3}$",
+          "type": "string"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_digest"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "git_yaml",
+            "repository_metadata",
+            "hook_metadata",
+            "review",
+            "derived"
+          ]
+        },
+        "source_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "signal_id",
+        "event",
+        "repository_id",
+        "observed_digest",
+        "paths",
+        "provenance",
+        "complete"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-signal/0.6.1"
+        },
+        "signal_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "event": {
+          "enum": [
+            "bootstrap",
+            "stop",
+            "scan",
+            "overflow"
+          ]
+        },
+        "repository_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "observed_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "paths": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending JCS bytes",
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "overflow_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "event": {
+                "const": "overflow"
+              }
+            },
+            "required": [
+              "event"
+            ]
+          },
+          "then": {
+            "required": [
+              "overflow_count"
+            ],
+            "properties": {
+              "complete": {
+                "const": false
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "overflow_count"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "packet_id",
+        "base_model_digest",
+        "signal_ids",
+        "state"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-packet/0.6.1"
+        },
+        "packet_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "base_model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "signal_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        },
+        "state": {
+          "const": "outstanding"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "candidate_digest",
+        "files"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-candidate/0.6.1"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending path UTF-8 bytes",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "digest"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "digest": {
+                "$ref": "#/$defs/digest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "proposal_id",
+        "base_model_digest",
+        "candidate",
+        "evidence_ids",
+        "classification"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-proposal/0.6.1"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "base_model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate": {
+          "$ref": "#/$defs/candidate"
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        },
+        "classification": {
+          "enum": [
+            "asserted",
+            "inferred_suggestion"
+          ]
+        }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "conflict_id",
+        "kind",
+        "expected_digest",
+        "actual_digest",
+        "paths",
+        "diagnostic"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-conflict/0.6.1"
+        },
+        "conflict_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "kind": {
+          "enum": [
+            "canonical_drift",
+            "workflow_fork",
+            "integration_drift",
+            "malformed_state",
+            "preview_stale"
+          ]
+        },
+        "expected_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "actual_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "diagnostic": {
+          "$ref": "#/$defs/diagnostic"
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "review_id",
+        "proposal_id",
+        "proposal_digest",
+        "disposition",
+        "actor",
+        "decided_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-review/0.6.1"
+        },
+        "review_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "proposal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "disposition": {
+          "enum": [
+            "accept",
+            "reject",
+            "revise"
+          ]
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "decided_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "revision_note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "released_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "revise"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          },
+          "then": {
+            "required": [
+              "revision_note",
+              "released_evidence_ids"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "revision_note"
+                  ]
+                },
+                {
+                  "required": [
+                    "released_evidence_ids"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "receipt_id",
+        "review_id",
+        "result",
+        "before_root",
+        "after_root",
+        "transition_id",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-receipt/0.6.1"
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "review_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "result": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "revision_released",
+            "claim_failed"
+          ]
+        },
+        "before_root": {
+          "$ref": "#/$defs/digest"
+        },
+        "after_root": {
+          "$ref": "#/$defs/digest"
+        },
+        "transition_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "created_at": {
+          "$ref": "#/$defs/utc"
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "transition_id",
+        "from_generation",
+        "to_generation",
+        "kind",
+        "causes"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-transition/0.6.1"
+        },
+        "transition_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "from_generation": {
+          "$ref": "#/$defs/digest"
+        },
+        "to_generation": {
+          "$ref": "#/$defs/digest"
+        },
+        "kind": {
+          "enum": [
+            "observed",
+            "packet_leased",
+            "reviewed",
+            "commit_claimed",
+            "committed",
+            "claim_failed",
+            "repaired",
+            "compacted"
+          ]
+        },
+        "causes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "generation_id",
+        "sequence",
+        "state",
+        "root_digest"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-generation/0.6.1"
+        },
+        "generation_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854776000
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "outstanding",
+            "reviewed",
+            "commit_claimed",
+            "terminal",
+            "claim_failed",
+            "corrupt"
+          ]
+        },
+        "root_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "root_digest",
+        "generation_id",
+        "members"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-root/0.6.1"
+        },
+        "root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "generation_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "members": {
+          "type": "array",
+          "maxItems": 1024,
+          "uniqueItems": true,
+          "x-order": "ascending UTF-8 bytes",
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state",
+        "canonical_model_digest",
+        "next_action",
+        "diagnostics"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-status/0.6.1"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "empty",
+            "pending",
+            "outstanding",
+            "reviewed",
+            "recovering",
+            "ready",
+            "corrupt",
+            "conflict",
+            "partial"
+          ]
+        },
+        "canonical_model_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_action": {
+          "enum": [
+            "onboard_start",
+            "scan",
+            "packet_next",
+            "review",
+            "apply",
+            "recover",
+            "repair",
+            "compact",
+            "none"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        }
+      }
+    },
+    "lifecycle_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "client",
+        "event",
+        "repository_root",
+        "session_id"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-acquisition-event/0.6.1"
+        },
+        "client": {
+          "enum": [
+            "claude_code",
+            "codex_cli"
+          ]
+        },
+        "event": {
+          "enum": [
+            "Stop",
+            "SessionStart"
+          ]
+        },
+        "repository_root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cwd": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "changed_paths": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "transcript_path": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "prompt": {
+          "type": "string"
+        }
+      },
+      "x-byteLimit": 1048576,
+      "x-privacy": "transcript_path and prompt accepted for normalization but never persisted or hashed"
+    },
+    "lifecycle_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "event",
+        "outcome",
+        "exit_code",
+        "state_changed",
+        "diagnostics"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-acquisition-hook-result/0.6.1"
+        },
+        "event": {
+          "enum": [
+            "Stop",
+            "SessionStart"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "observed",
+            "packet_available",
+            "unchanged",
+            "advisory_error"
+          ]
+        },
+        "exit_code": {
+          "const": 0
+        },
+        "state_changed": {
+          "type": "boolean"
+        },
+        "packet_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "packet_available"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          },
+          "then": {
+            "required": [
+              "packet_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "packet_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "preview_digest",
+        "operation",
+        "entries",
+        "conflicts",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-preview/0.6.1"
+        },
+        "preview_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operation": {
+          "enum": [
+            "repair",
+            "compact",
+            "remove",
+            "quarantine"
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "x-order": "ascending path then action",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "action",
+              "before_digest"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "action": {
+                "enum": [
+                  "create",
+                  "replace",
+                  "delete",
+                  "retain"
+                ]
+              },
+              "before_digest": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/digest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "after_digest": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/digest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "x-order": "ascending conflict_id",
+          "items": {
+            "$ref": "#/$defs/conflict"
+          }
+        },
+        "created_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "empty",
+            "pending",
+            "outstanding",
+            "reviewed",
+            "recovering",
+            "ready",
+            "corrupt",
+            "conflict",
+            "partial"
+          ]
+        },
+        "canonical_model_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_action": {
+          "enum": [
+            "onboard_start",
+            "scan",
+            "packet_next",
+            "review",
+            "apply",
+            "recover",
+            "repair",
+            "compact",
+            "none"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        }
+      }
+    },
+    "mcp_selector_input": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "default": 50
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "cursor"
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "id"
+                ]
+              },
+              {
+                "required": [
+                  "cursor"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "mcp_packet_page": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state",
+        "items",
+        "diagnostics",
+        "provenance",
+        "truncated"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-acquisition-tools/0.6.1"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "present",
+            "malformed"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contract_version",
+              "packet_id",
+              "base_model_digest",
+              "signal_ids",
+              "state"
+            ],
+            "properties": {
+              "contract_version": {
+                "const": "projectlore-knowledge-packet/0.6.1"
+              },
+              "packet_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "base_model_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "signal_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 256,
+                "uniqueItems": true,
+                "x-order": "ascending UTF-8 bytes",
+                "items": {
+                  "$ref": "#/$defs/digest"
+                }
+              },
+              "state": {
+                "const": "outstanding"
+              }
+            }
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256
+        },
+        "provenance": {
+          "type": "array",
+          "maxItems": 256,
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_kind",
+              "source_digest"
+            ],
+            "properties": {
+              "source_kind": {
+                "enum": [
+                  "git_yaml",
+                  "repository_metadata",
+                  "hook_metadata",
+                  "review",
+                  "derived"
+                ]
+              },
+              "source_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            },
+            "required": [
+              "truncated"
+            ]
+          },
+          "then": {
+            "required": [
+              "next_cursor"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "next_cursor"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "mcp_proposal_page": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state",
+        "items",
+        "diagnostics",
+        "provenance",
+        "truncated"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-acquisition-tools/0.6.1"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "present",
+            "malformed"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contract_version",
+              "proposal_id",
+              "base_model_digest",
+              "candidate",
+              "evidence_ids",
+              "classification"
+            ],
+            "properties": {
+              "contract_version": {
+                "const": "projectlore-knowledge-proposal/0.6.1"
+              },
+              "proposal_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "base_model_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "candidate": {
+                "$ref": "#/$defs/candidate"
+              },
+              "evidence_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 256,
+                "uniqueItems": true,
+                "x-order": "ascending UTF-8 bytes",
+                "items": {
+                  "$ref": "#/$defs/digest"
+                }
+              },
+              "classification": {
+                "enum": [
+                  "asserted",
+                  "inferred_suggestion"
+                ]
+              }
+            }
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256
+        },
+        "provenance": {
+          "type": "array",
+          "maxItems": 256,
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_kind",
+              "source_digest"
+            ],
+            "properties": {
+              "source_kind": {
+                "enum": [
+                  "git_yaml",
+                  "repository_metadata",
+                  "hook_metadata",
+                  "review",
+                  "derived"
+                ]
+              },
+              "source_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            },
+            "required": [
+              "truncated"
+            ]
+          },
+          "then": {
+            "required": [
+              "next_cursor"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "next_cursor"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "mcp_review_page": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state",
+        "items",
+        "diagnostics",
+        "provenance",
+        "truncated"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-acquisition-tools/0.6.1"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "present",
+            "malformed"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contract_version",
+              "review_id",
+              "proposal_id",
+              "proposal_digest",
+              "disposition",
+              "actor",
+              "decided_at"
+            ],
+            "properties": {
+              "contract_version": {
+                "const": "projectlore-knowledge-review/0.6.1"
+              },
+              "review_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "proposal_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "proposal_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "disposition": {
+                "enum": [
+                  "accept",
+                  "reject",
+                  "revise"
+                ]
+              },
+              "actor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "decided_at": {
+                "$ref": "#/$defs/utc"
+              },
+              "revision_note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "released_evidence_ids": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 256,
+                "uniqueItems": true,
+                "x-order": "ascending UTF-8 bytes",
+                "items": {
+                  "$ref": "#/$defs/digest"
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "disposition": {
+                      "const": "revise"
+                    }
+                  },
+                  "required": [
+                    "disposition"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "revision_note",
+                    "released_evidence_ids"
+                  ]
+                },
+                "else": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "revision_note"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "released_evidence_ids"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256
+        },
+        "provenance": {
+          "type": "array",
+          "maxItems": 256,
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_kind",
+              "source_digest"
+            ],
+            "properties": {
+              "source_kind": {
+                "enum": [
+                  "git_yaml",
+                  "repository_metadata",
+                  "hook_metadata",
+                  "review",
+                  "derived"
+                ]
+              },
+              "source_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            },
+            "required": [
+              "truncated"
+            ]
+          },
+          "then": {
+            "required": [
+              "next_cursor"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "next_cursor"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "mcp_receipt_page": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state",
+        "items",
+        "diagnostics",
+        "provenance",
+        "truncated"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-acquisition-tools/0.6.1"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "present",
+            "malformed"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contract_version",
+              "receipt_id",
+              "review_id",
+              "result",
+              "before_root",
+              "after_root",
+              "transition_id",
+              "created_at"
+            ],
+            "properties": {
+              "contract_version": {
+                "const": "projectlore-knowledge-receipt/0.6.1"
+              },
+              "receipt_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "review_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "result": {
+                "enum": [
+                  "accepted",
+                  "rejected",
+                  "revision_released",
+                  "claim_failed"
+                ]
+              },
+              "before_root": {
+                "$ref": "#/$defs/digest"
+              },
+              "after_root": {
+                "$ref": "#/$defs/digest"
+              },
+              "transition_id": {
+                "$ref": "#/$defs/digest"
+              },
+              "created_at": {
+                "$ref": "#/$defs/utc"
+              }
+            }
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256
+        },
+        "provenance": {
+          "type": "array",
+          "maxItems": 256,
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_kind",
+              "source_digest"
+            ],
+            "properties": {
+              "source_kind": {
+                "enum": [
+                  "git_yaml",
+                  "repository_metadata",
+                  "hook_metadata",
+                  "review",
+                  "derived"
+                ]
+              },
+              "source_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "next_cursor": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            },
+            "required": [
+              "truncated"
+            ]
+          },
+          "then": {
+            "required": [
+              "next_cursor"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "next_cursor"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "network_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "platform",
+        "deny_rule_digest",
+        "dns_denied",
+        "tcp_denied",
+        "successful_external_connects",
+        "contract_manifest_digest",
+        "source_tree",
+        "candidate_wheel",
+        "client"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-network-denial-receipt/0.6.1"
+        },
+        "platform": {
+          "enum": [
+            "windows",
+            "linux",
+            "macos"
+          ]
+        },
+        "deny_rule_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "dns_denied": {
+          "const": true
+        },
+        "tcp_denied": {
+          "const": true
+        },
+        "successful_external_connects": {
+          "const": 0
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_wheel": {
+          "$ref": "#/$defs/digest"
+        },
+        "client": {
+          "enum": [
+            "claude_code",
+            "codex_cli"
+          ]
+        }
+      }
+    },
+    "measurement_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "hardware",
+        "raw_records_digest",
+        "repetitions",
+        "maximum_of_30_ms",
+        "median_ms",
+        "p95_ms",
+        "contract_manifest_digest",
+        "source_tree",
+        "candidate_wheel"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-measurement-receipt/0.6.1"
+        },
+        "hardware": {
+          "type": "object"
+        },
+        "raw_records_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "repetitions": {
+          "const": 30
+        },
+        "maximum_of_30_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "median_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_wheel": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "test_support_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "artifact_digest",
+        "generator_digest",
+        "model_checker_digest",
+        "catalog_digest",
+        "states_explored",
+        "transitions_explored",
+        "coverage_digest",
+        "production_absence",
+        "proof_pass",
+        "contract_manifest_digest",
+        "source_tree",
+        "candidate_wheel"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-test-support-receipt/0.6.1"
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "generator_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "model_checker_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "catalog_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "states_explored": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "transitions_explored": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "coverage_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "production_absence": {
+          "const": true
+        },
+        "proof_pass": {
+          "const": true
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_wheel": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "corpus_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "manifest_digest",
+        "raw_fixture_digest",
+        "expected_fixture_digest",
+        "case_count",
+        "all_passed",
+        "update_mode",
+        "contract_manifest_digest",
+        "source_tree",
+        "candidate_wheel"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-corpus-receipt/0.6.1"
+        },
+        "manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "raw_fixture_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_fixture_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "case_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "all_passed": {
+          "const": true
+        },
+        "update_mode": {
+          "const": false
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_wheel": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "readiness_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "receipt_id",
+        "contract_manifest_digest",
+        "source_commit",
+        "source_tree",
+        "candidate_wheel",
+        "dependency_lock",
+        "wheelhouse",
+        "fixture_suite",
+        "client_receipts",
+        "measurement_receipt",
+        "fault_receipt",
+        "core_regression_digest",
+        "issued_at",
+        "result",
+        "network_receipts"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-readiness-receipt/0.6.1"
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_wheel": {
+          "$ref": "#/$defs/digest"
+        },
+        "dependency_lock": {
+          "$ref": "#/$defs/digest"
+        },
+        "wheelhouse": {
+          "$ref": "#/$defs/digest"
+        },
+        "fixture_suite": {
+          "$ref": "#/$defs/corpus_receipt"
+        },
+        "client_receipts": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/client_receipt"
+          },
+          "x-uniqueKey": [
+            "platform",
+            "client"
+          ]
+        },
+        "measurement_receipt": {
+          "$ref": "#/$defs/measurement_receipt"
+        },
+        "fault_receipt": {
+          "$ref": "#/$defs/test_support_receipt"
+        },
+        "core_regression_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/utc"
+        },
+        "result": {
+          "const": "ready"
+        },
+        "network_receipts": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "x-uniqueKey": [
+            "platform",
+            "client"
+          ],
+          "items": {
+            "$ref": "#/$defs/network_receipt"
+          }
+        }
+      }
+    },
+    "quarantine_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "record_id",
+        "source_path",
+        "source_bytes_digest",
+        "detected_version",
+        "reason_code",
+        "quarantined_path",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-quarantine-record/0.6.1"
+        },
+        "record_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_path": {
+          "type": "string"
+        },
+        "source_bytes_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "detected_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_code": {
+          "enum": [
+            "PLKA1010",
+            "PLKA1001",
+            "PLKA1007",
+            "PLKA1002"
+          ]
+        },
+        "quarantined_path": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        }
+      }
+    },
+    "mcp_status_empty_input": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
+    "mcp_status_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "state",
+        "canonical_model_digest",
+        "next_action",
+        "diagnostics",
+        "provenance"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-status/0.6.1"
+        },
+        "state": {
+          "enum": [
+            "missing",
+            "empty",
+            "pending",
+            "outstanding",
+            "reviewed",
+            "recovering",
+            "ready",
+            "corrupt",
+            "conflict",
+            "partial"
+          ]
+        },
+        "canonical_model_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "next_action": {
+          "enum": [
+            "onboard_start",
+            "scan",
+            "packet_next",
+            "review",
+            "apply",
+            "recover",
+            "repair",
+            "compact",
+            "none"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_kind",
+              "source_digest"
+            ],
+            "properties": {
+              "source_kind": {
+                "enum": [
+                  "git_yaml",
+                  "repository_metadata",
+                  "hook_metadata",
+                  "review",
+                  "derived"
+                ]
+              },
+              "source_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "path": {
+                "$ref": "#/$defs/path"
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      }
+    },
+    "query_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "fixture_id",
+        "command_digest",
+        "expected_digest",
+        "before_digest",
+        "after_digest",
+        "equal"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "fixture_id": {
+          "enum": [
+            "homebrew-status",
+            "homebrew-context-empty",
+            "forecast-status"
+          ]
+        },
+        "command_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "before_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "after_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "equal": {
+          "const": true
+        }
+      }
+    },
+    "query_equivalence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "records",
+        "suite_digest"
+      ],
+      "properties": {
+        "records": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/query_record"
+          }
+        },
+        "suite_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "lifecycle_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "receipt_id",
+        "operation",
+        "preview_digest",
+        "before_inventory",
+        "after_inventory",
+        "canonical_before",
+        "canonical_after",
+        "query_equivalence",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-lifecycle-receipt/0.6.1"
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/digest"
+        },
+        "operation": {
+          "enum": [
+            "repair",
+            "compact",
+            "remove",
+            "quarantine"
+          ]
+        },
+        "preview_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "before_inventory": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "after_inventory": {
+          "type": "array",
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "canonical_before": {
+          "$ref": "#/$defs/digest"
+        },
+        "canonical_after": {
+          "$ref": "#/$defs/digest"
+        },
+        "query_equivalence": {
+          "$ref": "#/$defs/query_equivalence"
+        },
+        "created_at": {
+          "$ref": "#/$defs/utc"
+        }
+      }
+    },
+    "client_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "contract_manifest_digest",
+        "source_tree",
+        "candidate_wheel",
+        "client",
+        "version",
+        "platform",
+        "config_digest",
+        "mcp_registry_digest",
+        "session_start_observed",
+        "stop_observed",
+        "read_succeeded",
+        "filesystem_unchanged",
+        "result"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-client-receipt/0.6.1"
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidate_wheel": {
+          "$ref": "#/$defs/digest"
+        },
+        "client": {
+          "enum": [
+            "claude_code",
+            "codex_cli"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "platform": {
+          "enum": [
+            "windows",
+            "linux",
+            "macos"
+          ]
+        },
+        "config_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mcp_registry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "session_start_observed": {
+          "const": true
+        },
+        "stop_observed": {
+          "const": true
+        },
+        "read_succeeded": {
+          "const": true
+        },
+        "filesystem_unchanged": {
+          "const": true
+        },
+        "result": {
+          "const": "pass"
+        }
+      }
+    },
+    "build_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "contract_manifest_digest",
+        "source_commit",
+        "source_tree",
+        "wheel_filename",
+        "wheel_sha256",
+        "lock_digest",
+        "wheelhouse_digest",
+        "record_digest",
+        "tests_passed"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-build-receipt/0.6.1"
+        },
+        "contract_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "wheel_filename": {
+          "type": "string"
+        },
+        "wheel_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "lock_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "wheelhouse_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "tests_passed": {
+          "const": true
+        }
+      }
+    },
+    "fault_plan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "plan_id",
+        "ordinal",
+        "selector",
+        "phase",
+        "outcome"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-fault-plan/0.6.1"
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "selector": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "raise_timeout",
+            "hold",
+            "raise_io",
+            "terminate"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "lock.canonical"
+              },
+              "phase": {
+                "enum": [
+                  "before_acquire",
+                  "after_acquire"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_timeout",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 2
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "lock.workflow"
+              },
+              "phase": {
+                "enum": [
+                  "before_acquire",
+                  "after_acquire"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_timeout",
+                  "hold",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 3
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "object.stage"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 4
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "object.flush"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 5
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "root.stage"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 6
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "root.flush"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 7
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "canonical_root.replace"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 8
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "canonical_directory.flush"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 9
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "workflow_root.replace"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 10
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "workflow_directory.flush"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 11
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "lock.workflow.release"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "ordinal": {
+                "const": 12
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "const": "lock.canonical.release"
+              },
+              "phase": {
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "raise_io",
+                  "terminate"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "fault_trace": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "trace_id",
+        "plan_id",
+        "events",
+        "observation",
+        "proof"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-fault-trace/0.6.1"
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "plan_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sequence",
+              "ordinal",
+              "selector",
+              "phase",
+              "outcome",
+              "state_before",
+              "state_after"
+            ],
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 128
+              },
+              "ordinal": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "selector": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              },
+              "outcome": {
+                "enum": [
+                  "continue",
+                  "raise_timeout",
+                  "hold",
+                  "raise_io",
+                  "terminate"
+                ]
+              },
+              "state_before": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "state_after": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "observation": {
+          "enum": [
+            "old",
+            "new",
+            "neither"
+          ]
+        },
+        "proof": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "observation": {
+                "const": "neither"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "proof": {
+                "const": false
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "proof": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "repair_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "root_digest",
+        "bytes_digest",
+        "canonical_model_digest",
+        "valid",
+        "diagnostics"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "bytes_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "canonical_model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        }
+      }
+    },
+    "repair_preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "preview_digest",
+        "current_corrupt_digest",
+        "evidence",
+        "applicable",
+        "entries",
+        "conflicts",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-repair-preview/0.6.1"
+        },
+        "preview_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "current_corrupt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "selected_root": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/repair_evidence"
+          }
+        },
+        "applicable": {
+          "type": "boolean"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/conflict"
+          }
+        },
+        "created_at": {
+          "$ref": "#/$defs/utc"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "applicable": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selected_root": {
+                "type": "string"
+              },
+              "entries": {
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "conflicts": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "selected_root": {
+                "type": "null"
+              },
+              "entries": {
+                "maxItems": 0
+              },
+              "conflicts": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "action",
+        "before_digest",
+        "after_digest"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "action": {
+          "enum": [
+            "create",
+            "replace",
+            "delete",
+            "retain"
+          ]
+        },
+        "before_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "after_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "create"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "before_digest": {
+                "type": "null"
+              },
+              "after_digest": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "replace"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "before_digest": {
+                "type": "string"
+              },
+              "after_digest": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "delete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "before_digest": {
+                "type": "string"
+              },
+              "after_digest": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "retain"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "before_digest": {
+                "type": "string"
+              },
+              "after_digest": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "x-public-definitions": [
+    "action",
+    "build_receipt",
+    "candidate",
+    "client_receipt",
+    "conflict",
+    "corpus_receipt",
+    "diagnostic",
+    "digest",
+    "fault_plan",
+    "fault_trace",
+    "generation",
+    "lifecycle_input",
+    "lifecycle_output",
+    "lifecycle_receipt",
+    "mcp_packet_page",
+    "mcp_proposal_page",
+    "mcp_receipt_page",
+    "mcp_review_page",
+    "mcp_selector_input",
+    "mcp_status_empty_input",
+    "mcp_status_output",
+    "measurement_receipt",
+    "network_receipt",
+    "packet",
+    "path",
+    "preview",
+    "proposal",
+    "provenance",
+    "quarantine_record",
+    "query_equivalence",
+    "query_record",
+    "readiness_receipt",
+    "receipt",
+    "repair_evidence",
+    "repair_preview",
+    "review",
+    "root",
+    "signal",
+    "status",
+    "test_support_receipt",
+    "transition",
+    "utc"
+  ]
+}

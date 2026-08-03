@@ -1,25 +1,31 @@
 # Getting started
 
-ProjectLore `0.1.0a2` is an early local alpha for Python 3.11 or newer. Canonical
+ProjectLore `0.1.0a3` is an early local alpha for Python 3.11 or newer. Canonical
 project knowledge remains in human-readable YAML committed to the repository.
 The initializer only writes after an explicit preview and does not approve
 client-owned trust prompts.
 
+For a cold-start procedure that distinguishes executable installation from
+per-repository integration and includes agent handoff and completion criteria,
+use the [agent onboarding runbook](agent-onboarding.md). This guide remains the
+compact command and behavior reference.
+
 ## Install and initialize
 
 Create and activate a virtual environment using the normal command for your
-platform. Version `0.1.0a2` is currently an unpublished release candidate:
+platform. Version `0.1.0a3` is currently an unpublished release candidate:
 download its wheel from the successful CI run or build it from the exact source
 commit, then install that local artifact. Launch Claude Code or Codex from a
 shell where the environment remains active so the generated
-`projectlore-mcp`, `projectlore-hook`, and `projectlore-scope-hook` commands
+`projectlore-mcp`, `projectlore-acquisition-mcp`, `projectlore-hook`,
+`projectlore-scope-hook`, and `projectlore-acquisition-hook` commands
 are on `PATH`:
 
 ```shell
-python -m pip install ./projectlore-0.1.0a2-py3-none-any.whl
+python -m pip install ./projectlore-0.1.0a3-py3-none-any.whl
 ```
 
-Do not use `python -m pip install projectlore==0.1.0a2` until the owner has
+Do not use `python -m pip install projectlore==0.1.0a3` until the owner has
 separately authorized package-index publication.
 
 From the root of a Git repository, preview every proposed file:

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -80,10 +82,71 @@ def apply_initialization(previews: list[FilePreview]) -> None:
         )
         if _digest(current) != preview.before_digest:
             raise ValueError(f"Initialization drift detected: {preview.path}")
-    for preview in previews:
-        if preview.changed:
-            preview.path.parent.mkdir(parents=True, exist_ok=True)
-            preview.path.write_text(preview.content, encoding="utf-8")
+    changed = [item for item in previews if item.changed]
+    if not changed:
+        return
+    roots = [
+        item.path.parent for item in previews if item.path.name == "projectlore.yaml"
+    ]
+    root = (
+        roots[0]
+        if roots
+        else Path(os.path.commonpath([item.path for item in previews]))
+    )
+    journal = root / ".projectlore" / "integration-journal.json"
+    payload = {
+        "contract_version": "projectlore-integration-journal/0.6.1",
+        "entries": [
+            {
+                "path": item.path.relative_to(root).as_posix(),
+                "before_digest": item.before_digest,
+                "after_digest": item.after_digest,
+                "content": item.content,
+            }
+            for item in changed
+        ],
+    }
+    _atomic_text(journal, f"{json.dumps(payload, separators=(',', ':'))}\n")
+    resume_initialization(root)
+
+
+def resume_initialization(root: Path) -> None:
+    """Idempotently finish a digest-bound interrupted integration write set."""
+
+    resolved = root.resolve(strict=True)
+    journal = resolved / ".projectlore" / "integration-journal.json"
+    if not journal.is_file() or journal.is_symlink():
+        return
+    payload = json.loads(journal.read_text(encoding="utf-8"))
+    if payload.get("contract_version") != "projectlore-integration-journal/0.6.1":
+        raise ValueError("Unknown ProjectLore integration journal version.")
+    for entry in payload["entries"]:
+        path = resolved.joinpath(*Path(entry["path"]).parts)
+        if not path.resolve(strict=False).is_relative_to(resolved) or path.is_symlink():
+            raise ValueError("Integration journal path escapes repository.")
+        current = path.read_text(encoding="utf-8") if path.is_file() else None
+        digest = _digest(current)
+        if digest == entry["after_digest"]:
+            continue
+        if digest != entry["before_digest"]:
+            raise ValueError(f"Integration journal drift detected: {path}")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_text(path, entry["content"])
+    journal.unlink()
+
+
+def _atomic_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, raw = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(raw)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _relative_model_path(path: Path) -> Path:
@@ -180,6 +243,18 @@ def _merge_mcp(value: dict[str, Any], model_path: str) -> dict[str, Any]:
     if existing is not None and existing != desired:
         raise ValueError("mcpServers.projectlore already has unmanaged content")
     servers["projectlore"] = desired
+    acquisition_desired = {
+        "type": "stdio",
+        "command": "projectlore-acquisition-mcp",
+        "args": [],
+        "env": {"PROJECTLORE_ROOT": "."},
+    }
+    acquisition_existing = servers.get("projectlore-acquisition")
+    if acquisition_existing is not None and acquisition_existing != acquisition_desired:
+        raise ValueError(
+            "mcpServers.projectlore-acquisition already has unmanaged content"
+        )
+    servers["projectlore-acquisition"] = acquisition_desired
     result["mcpServers"] = servers
     return result
 
@@ -217,10 +292,26 @@ def _merge_hooks(value: dict[str, Any], *, client: str) -> dict[str, Any]:
         "timeout": 15,
         "statusMessage": "Refreshing ProjectLore workflow scope",
     }
-    scope_desired = {"hooks": [scope_command]}
+    acquisition_command = {
+        "type": "command",
+        "command": f"projectlore-acquisition-hook --client {client} --root .",
+        "timeout": 3,
+        "statusMessage": "Refreshing ProjectLore knowledge evidence",
+    }
+    scope_desired = {"hooks": [scope_command, acquisition_command]}
+    # Upgrade the exact legacy entry instead of leaving two SessionStart jobs.
+    legacy_scope = {"hooks": [scope_command]}
+    session_entries = [item for item in session_entries if item != legacy_scope]
     if scope_desired not in session_entries:
         session_entries = [*session_entries, scope_desired]
     hooks["SessionStart"] = session_entries
+    stop_entries = hooks.get("Stop", [])
+    if not isinstance(stop_entries, list):
+        raise ValueError("hooks.Stop must be an array")
+    stop_desired = {"hooks": [acquisition_command]}
+    if stop_desired not in stop_entries:
+        stop_entries = [*stop_entries, stop_desired]
+    hooks["Stop"] = stop_entries
     result["hooks"] = hooks
     return result
 
@@ -236,6 +327,16 @@ default_tools_approval_mode = "approve"
 
 [mcp_servers.projectlore.env]
 PROJECTLORE_MODEL = "{model_path}"
+
+[mcp_servers.projectlore-acquisition]
+command = "projectlore-acquisition-mcp"
+args = []
+cwd = "."
+required = false
+default_tools_approval_mode = "approve"
+
+[mcp_servers.projectlore-acquisition.env]
+PROJECTLORE_ROOT = "."
 {TOML_END}"""
 
 

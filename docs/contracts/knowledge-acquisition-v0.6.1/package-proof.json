@@ -1,0 +1,335 @@
+{
+  "contract_version": "projectlore-acquisition-package-proof/0.6.1",
+  "baseline": "a087c22",
+  "build": {
+    "clean_checkout": true,
+    "python": "CPython 3.11.x",
+    "commands": [
+      "py -3.11 -m venv .build-venv",
+      ".build-venv/Scripts/python -m pip install --no-index --require-hashes --find-links wheelhouse -r build-requirements.lock",
+      ".build-venv/Scripts/python -m build --wheel --no-isolation --outdir dist-candidate"
+    ],
+    "candidate_wheel_hash": {
+      "value": null,
+      "classification": "candidate-bound placeholder intentionally populated only after build",
+      "procedure": "require exactly one wheel; SHA-256 exact bytes; write detached candidate evidence, never edit this contract"
+    }
+  },
+  "lock_generation": {
+    "online_preparation_only": "On separately authorized networked preparer, download exact direct/transitive build/runtime wheels for CPython 3.11 Windows x86-64, Linux x86-64, macOS arm64 (macosx_11_0_arm64), and macOS x86_64 (macosx_10_9_x86_64); record target architecture/platform tag/implementation/Python ABI and name/version/filename/size/SHA-256/source URL in wheelhouse-manifest.json; generate requirements locks with exact == and --hash=sha256 entries.",
+    "offline_verification": [
+      "verify manifest JCS digest pinned by candidate evidence",
+      "verify every wheel size/hash and reject extras",
+      "pip install --no-index --require-hashes",
+      "pip check",
+      "unpack candidate wheel and verify RECORD hashes/entrypoints/package inventory"
+    ]
+  },
+  "network_denial": {
+    "windows_commands": [
+      "New-NetFirewallRule -DisplayName ProjectLoreKA-$PID -Direction Outbound -Program ABSOLUTE_TEST_PYTHON -Action Block",
+      "run DNS/TCP denial canaries and suite",
+      "Remove-NetFirewallRule -DisplayName ProjectLoreKA-$PID"
+    ],
+    "linux_commands": [
+      "unshare --user --map-root-user --net --mount-proc sh -c 'ip link set lo down; exec ./run-suite'"
+    ],
+    "precondition": "isolated authorized runner with firewall authority; cleanup in finally",
+    "oracle": "DNS and AF_INET/AF_INET6 connect canaries fail and OS socket trace reports zero successful external connects"
+  },
+  "fixtures": "Raw input and expected JCS bytes/hex/SHA-256 are immutable corpus members. Test runner has no update mode. Missing candidate output is failure.",
+  "measurement": {
+    "hardware_record": [
+      "OS/build",
+      "CPU model/logical cores",
+      "RAM bytes",
+      "filesystem/device",
+      "Python/client versions",
+      "wheel/lock/config digests"
+    ],
+    "raw_record": [
+      "case",
+      "repetition 1..30",
+      "monotonic wall ns",
+      "peak RSS",
+      "read/write bytes",
+      "exit",
+      "diagnostics"
+    ],
+    "statistics": [
+      "maximum_of_30",
+      "median",
+      "p95 nearest-rank"
+    ],
+    "claim": "never p99 with 30 samples"
+  },
+  "real_clients": {
+    "preconditions": "exact supported binaries installed, authenticated by operator, project configs reviewed/trusted, candidate wheel installed",
+    "claude": [
+      "claude --version equals supported version",
+      "claude mcp list shows projectlore-acquisition",
+      "start session in fixture repo and observe real SessionStart hook",
+      "claude -p --max-turns 1 --output-format json 'Call knowledge_status exactly once and make no changes.'",
+      "end session and observe real Stop hook"
+    ],
+    "codex": [
+      "codex --version equals supported version",
+      "codex mcp list shows projectlore-acquisition",
+      "start session in fixture repo and observe real SessionStart hook",
+      "codex exec --json 'Call knowledge_status exactly once and make no changes.'",
+      "end session and observe real Stop hook"
+    ],
+    "pass": "both clients parse config, start exact wheel sidecar, produce hook receipts, return registry digest and valid status, and before/after recursive manifests match",
+    "nonpass": [
+      "indeterminate",
+      "unavailable",
+      "timeout",
+      "authentication failure",
+      "trust pending",
+      "fallback parsing",
+      "wrong version"
+    ]
+  },
+  "readiness": {
+    "initial": "unbound",
+    "acceptance_allowed_only": "verified",
+    "transitions": [
+      {
+        "from": "unbound",
+        "to": "built",
+        "requires": [
+          "candidate wheel exact SHA-256",
+          "RECORD digest"
+        ]
+      },
+      {
+        "from": "built",
+        "to": "locked",
+        "requires": [
+          "dependency lock digest",
+          "wheelhouse manifest digest",
+          "every wheel verified"
+        ]
+      },
+      {
+        "from": "locked",
+        "to": "tested",
+        "requires": [
+          "offline corpus pass",
+          "fault test-support receipt",
+          "six cell-bound network-denial receipts",
+          "measurement receipt",
+          "core regression pass"
+        ]
+      },
+      {
+        "from": "tested",
+        "to": "clients_verified",
+        "requires": [
+          "six distinct required-cell client receipts, all result=pass"
+        ]
+      },
+      {
+        "from": "clients_verified",
+        "to": "verified",
+        "requires": [
+          "all 27 oracle receipts and candidate manifest binding"
+        ]
+      }
+    ],
+    "rule": "null candidate hash is valid only in unbound proposal and categorically forbids contract acceptance/implementation handoff"
+  },
+  "receipt_schemas": {
+    "canonical": "schemas.json definitions build_receipt,test_support_receipt,network_receipt,corpus_receipt,measurement_receipt,client_receipt,readiness_receipt"
+  },
+  "corpus": {
+    "manifest_fields": [
+      "path",
+      "size",
+      "sha256",
+      "role"
+    ],
+    "raw_fixture_rule": "exact UTF-8 hex and SHA-256",
+    "expected_rule": "exact RFC8785 JCS UTF-8 hex and SHA-256; no update mode",
+    "required_cases": [
+      "fresh/existing bootstrap",
+      "Stop/SessionStart raw clients",
+      "N/N+1 bounds",
+      "concurrency/overflow",
+      "review dispositions",
+      "all fault Cartesian cases",
+      "MCP initialize/list/call/page/stale/error",
+      "quarantine proposal/unknown/malformed inputs, crash points and refusals",
+      "remove complete/partial/drift/query equivalence"
+    ],
+    "manifest_digest": "JCS domain projectlore:corpus-manifest:0.6.1"
+  },
+  "support_matrix": {
+    "required_cells": [
+      {
+        "platform": "windows",
+        "client": "claude_code",
+        "version": "2.1.220"
+      },
+      {
+        "platform": "windows",
+        "client": "codex_cli",
+        "version": "0.146.0"
+      },
+      {
+        "platform": "linux",
+        "client": "claude_code",
+        "version": "2.1.220"
+      },
+      {
+        "platform": "linux",
+        "client": "codex_cli",
+        "version": "0.146.0"
+      },
+      {
+        "platform": "macos",
+        "client": "claude_code",
+        "version": "2.1.220"
+      },
+      {
+        "platform": "macos",
+        "client": "codex_cli",
+        "version": "0.146.0"
+      }
+    ],
+    "rule": "exactly one successful schemas.json client_receipt for every cell; duplicates, missing, wrong version/platform, indeterminate or non-pass forbids readiness"
+  },
+  "aggregate": {
+    "schema": "schemas.json#/$defs/readiness_receipt",
+    "anti_replay": [
+      "contract_manifest_digest equals this exact candidate manifest",
+      "source commit/tree equal build checkout and tree is clean except attested candidate artifacts",
+      "all child receipt digests recompute under digest registry",
+      "candidate wheel/lock/wheelhouse hashes equal build/install inputs",
+      "fixture suite binds exact raw/expected bytes",
+      "client receipt set key (platform,client) equals support matrix exactly",
+      "measurement/fault/core regression receipts bind same wheel/source/contract digests",
+      "issued_at UTC Z and evidence generated after build",
+      "any absence/mismatch/duplicate/stale binding yields non-ready and no aggregate receipt",
+      "network_receipts contains exactly six unique (platform,client) cells equal support_matrix; each binds identical contract_manifest_digest,source_tree,candidate_wheel and has zero successful external connects"
+    ],
+    "result": "Only aggregate result=ready changes readiness to verified."
+  },
+  "platform_procedures": {
+    "windows": {
+      "lock": [
+        "CreateFileW absolute lock path with CREATE_NEW and no sharing",
+        "write owner PID/process-start-token, FlushFileBuffers",
+        "retry monotonic up to 2000ms; stale recovery only after owner token absent",
+        "CloseHandle then DeleteFile exact owned lock"
+      ],
+      "build": [
+        "py -3.11 -m venv .build-venv",
+        ".build-venv/Scripts/python -m pip install --no-index --require-hashes --find-links wheelhouse -r build-requirements.lock",
+        ".build-venv/Scripts/python -m build --wheel --no-isolation --outdir dist-candidate"
+      ],
+      "network": [
+        "New-NetFirewallRule -DisplayName ProjectLoreKA-$PID-$CLIENT -Direction Outbound -Program ABSOLUTE_TEST_PYTHON -Action Block",
+        "run DNS/TCP canaries and cell corpus",
+        "Remove-NetFirewallRule -DisplayName ProjectLoreKA-$PID-$CLIENT"
+      ],
+      "offline": [
+        "$env:PIP_NO_INDEX='1'; .candidate/Scripts/python -m projectlore_acceptance --offline --cell PLATFORM-CLIENT"
+      ]
+    },
+    "linux": {
+      "lock": [
+        "open absolute lock path O_CREAT|O_EXCL mode 0600",
+        "write owner PID/start token; fsync",
+        "retry CLOCK_MONOTONIC <=2000ms; verified stale owner only",
+        "unlink exact owned inode"
+      ],
+      "build": [
+        "python3.11 -m venv .build-venv",
+        ".build-venv/bin/python -m pip install --no-index --require-hashes --find-links wheelhouse -r build-requirements.lock",
+        ".build-venv/bin/python -m build --wheel --no-isolation --outdir dist-candidate"
+      ],
+      "network": [
+        "unshare --user --map-root-user --net --mount-proc sh -c 'ip link set lo down; exec .candidate/bin/python -m projectlore_acceptance --offline --cell PLATFORM-CLIENT'"
+      ],
+      "offline": [
+        "env -u ANTHROPIC_API_KEY -u OPENAI_API_KEY PIP_NO_INDEX=1 .candidate/bin/python -m projectlore_acceptance --offline --cell PLATFORM-CLIENT"
+      ]
+    },
+    "macos": {
+      "wheelhouse_preparation": {
+        "interpreter": "CPython 3.11",
+        "targets": [
+          {
+            "architecture": "arm64",
+            "platform_tag": "macosx_11_0_arm64",
+            "abi": "cp311",
+            "command": "python3.11 -m pip download --only-binary=:all: --implementation cp --python-version 311 --abi cp311 --platform macosx_11_0_arm64 --require-hashes --destination wheelhouse/macos-arm64 -r build-requirements.lock -r runtime-requirements.lock"
+          },
+          {
+            "architecture": "x86_64",
+            "platform_tag": "macosx_10_9_x86_64",
+            "abi": "cp311",
+            "command": "python3.11 -m pip download --only-binary=:all: --implementation cp --python-version 311 --abi cp311 --platform macosx_10_9_x86_64 --require-hashes --destination wheelhouse/macos-x86_64 -r build-requirements.lock -r runtime-requirements.lock"
+          }
+        ],
+        "closure": "Each target command must resolve every exact direct and transitive build/runtime requirement from both hash-locked inputs; wheelhouse-manifest.json records architecture, platform_tag, implementation cp, Python 3.11, ABI cp311, filename, size and SHA-256 for every wheel; sdists and unmatched tags fail preparation."
+      },
+      "lock": [
+        "open absolute lock path O_CREAT|O_EXCL mode 0600",
+        "write owner PID and proc_pidinfo start token; fsync",
+        "retry mach_continuous_time <=2000ms; verified stale owner only",
+        "unlink exact owned inode"
+      ],
+      "build": [
+        "/usr/local/bin/python3.11 -m venv .build-venv",
+        ".build-venv/bin/python -m pip install --no-index --require-hashes --find-links wheelhouse -r build-requirements.lock",
+        ".build-venv/bin/python -m build --wheel --no-isolation --outdir dist-candidate"
+      ],
+      "network": [
+        "printf 'block drop out quick all\\n' | sudo pfctl -a com.projectlore.ka/$PID-$CLIENT -f -",
+        "record pf enabled token; sudo pfctl -E only if disabled",
+        "run DNS/TCP canaries and cell corpus",
+        "sudo pfctl -a com.projectlore.ka/$PID-$CLIENT -F rules; restore prior pf enabled state"
+      ],
+      "offline": [
+        "env -u ANTHROPIC_API_KEY -u OPENAI_API_KEY PIP_NO_INDEX=1 .candidate/bin/python -m projectlore_acceptance --offline --cell PLATFORM-CLIENT"
+      ]
+    }
+  },
+  "network_receipt_cardinality": {
+    "schema": "schemas.json#/$defs/network_receipt",
+    "count": 6,
+    "key": [
+      "platform",
+      "client"
+    ],
+    "cells": [
+      {
+        "platform": "windows",
+        "client": "claude_code"
+      },
+      {
+        "platform": "windows",
+        "client": "codex_cli"
+      },
+      {
+        "platform": "linux",
+        "client": "claude_code"
+      },
+      {
+        "platform": "linux",
+        "client": "codex_cli"
+      },
+      {
+        "platform": "macos",
+        "client": "claude_code"
+      },
+      {
+        "platform": "macos",
+        "client": "codex_cli"
+      }
+    ],
+    "binding": "every receipt contract_manifest_digest/source_tree/candidate_wheel equals aggregate; successful_external_connects=0; missing/duplicate/mismatch non-ready"
+  }
+}

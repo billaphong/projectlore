@@ -1,0 +1,1044 @@
+{
+  "registry_version": "projectlore-acquisition-tools/0.6.1",
+  "protocol_version": "2025-06-18",
+  "entrypoint": "projectlore-acquisition-mcp = projectlore.acquisition_mcp:main",
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    }
+  },
+  "digest": {
+    "domain": "projectlore:acquisition-tool-registry:0.6.1",
+    "exclude": [
+      "digest"
+    ],
+    "algorithm": "SHA-256",
+    "canonicalization": "RFC8785-JCS",
+    "value": "sha256:348882d0df8789abadc0e18e24d23ff1713f40c652a052060ac428d4b92e0704"
+  },
+  "pagination": {
+    "cursor": "sha256 of domain projectlore:acquisition-cursor:0.6.1 NUL JCS({tool,root_digest,last_id,limit})",
+    "order": "item content ID ascending UTF-8",
+    "limit": {
+      "minimum": 1,
+      "maximum": 256,
+      "default": 50
+    },
+    "stale": "tool result isError true PLKA4004"
+  },
+  "tools": [
+    {
+      "name": "knowledge_status",
+      "title": "Knowledge acquisition status",
+      "description": "Read acquisition and canonical status without mutation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "maxProperties": 0
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contract_version",
+          "state",
+          "canonical_model_digest",
+          "next_action",
+          "diagnostics",
+          "provenance"
+        ],
+        "properties": {
+          "contract_version": {
+            "const": "projectlore-knowledge-status/0.6.1"
+          },
+          "state": {
+            "enum": [
+              "missing",
+              "empty",
+              "pending",
+              "outstanding",
+              "reviewed",
+              "recovering",
+              "ready",
+              "corrupt",
+              "conflict",
+              "partial"
+            ]
+          },
+          "canonical_model_digest": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/digest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_action": {
+            "enum": [
+              "onboard_start",
+              "scan",
+              "packet_next",
+              "review",
+              "apply",
+              "recover",
+              "repair",
+              "compact",
+              "none"
+            ]
+          },
+          "diagnostics": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "$ref": "#/$defs/diagnostic"
+            }
+          },
+          "provenance": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "source_digest"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "git_yaml",
+                    "repository_metadata",
+                    "hook_metadata",
+                    "review",
+                    "derived"
+                  ]
+                },
+                "source_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "title": "Knowledge acquisition status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "schema_binding": {
+        "input_definition": "mcp_status_empty_input",
+        "output_definition": "mcp_status_output",
+        "equality": "registry schema must be exact JSON deep-equal to named schemas.json definition after resolving local refs",
+        "input_digest": "sha256:21ef8e84de316c68c5649ad8b896779279f2551a90747e7b96527ae285ca2eef",
+        "output_digest": "sha256:08d8669255dbc9ab430e8f2144403310b24ba37ab788fad61a355e41ff7f8cdb"
+      }
+    },
+    {
+      "name": "knowledge_get_packet",
+      "title": "Get knowledge packet",
+      "description": "Read packets by ID or stable cursor.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "default": 50
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "id"
+            ]
+          },
+          {
+            "required": [
+              "cursor"
+            ]
+          },
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "id"
+                  ]
+                },
+                {
+                  "required": [
+                    "cursor"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contract_version",
+          "state",
+          "items",
+          "diagnostics",
+          "provenance",
+          "truncated"
+        ],
+        "properties": {
+          "contract_version": {
+            "const": "projectlore-acquisition-tools/0.6.1"
+          },
+          "state": {
+            "enum": [
+              "missing",
+              "present",
+              "malformed"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_version",
+                "packet_id",
+                "base_model_digest",
+                "signal_ids",
+                "state"
+              ],
+              "properties": {
+                "contract_version": {
+                  "const": "projectlore-knowledge-packet/0.6.1"
+                },
+                "packet_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "base_model_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "signal_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "uniqueItems": true,
+                  "x-order": "ascending UTF-8 bytes",
+                  "items": {
+                    "$ref": "#/$defs/digest"
+                  }
+                },
+                "state": {
+                  "const": "outstanding"
+                }
+              }
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "maxItems": 256
+          },
+          "provenance": {
+            "type": "array",
+            "maxItems": 256,
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "source_digest"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "git_yaml",
+                    "repository_metadata",
+                    "hook_metadata",
+                    "review",
+                    "derived"
+                  ]
+                },
+                "source_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "truncated": {
+                  "const": true
+                }
+              },
+              "required": [
+                "truncated"
+              ]
+            },
+            "then": {
+              "required": [
+                "next_cursor"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "next_cursor"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "title": "Get knowledge packet",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "schema_binding": {
+        "input_definition": "mcp_selector_input",
+        "output_definition": "mcp_packet_page",
+        "equality": "registry schema must be exact JSON deep-equal to named schemas.json definition after resolving local refs",
+        "input_digest": "sha256:398a28e46fec0ffeb0370f9ac5c090108232e64a209f323e60588b093241881d",
+        "output_digest": "sha256:2afa526c3e1d32812115d4bf36140b086c16bd323b75aa8f9c771a916c26fe5f"
+      }
+    },
+    {
+      "name": "knowledge_get_proposal",
+      "title": "Get knowledge proposal",
+      "description": "Read proposals by ID or stable cursor.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "default": 50
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "id"
+            ]
+          },
+          {
+            "required": [
+              "cursor"
+            ]
+          },
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "id"
+                  ]
+                },
+                {
+                  "required": [
+                    "cursor"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contract_version",
+          "state",
+          "items",
+          "diagnostics",
+          "provenance",
+          "truncated"
+        ],
+        "properties": {
+          "contract_version": {
+            "const": "projectlore-acquisition-tools/0.6.1"
+          },
+          "state": {
+            "enum": [
+              "missing",
+              "present",
+              "malformed"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_version",
+                "proposal_id",
+                "base_model_digest",
+                "candidate",
+                "evidence_ids",
+                "classification"
+              ],
+              "properties": {
+                "contract_version": {
+                  "const": "projectlore-knowledge-proposal/0.6.1"
+                },
+                "proposal_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "base_model_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "candidate": {
+                  "$ref": "#/$defs/candidate"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "uniqueItems": true,
+                  "x-order": "ascending UTF-8 bytes",
+                  "items": {
+                    "$ref": "#/$defs/digest"
+                  }
+                },
+                "classification": {
+                  "enum": [
+                    "asserted",
+                    "inferred_suggestion"
+                  ]
+                }
+              }
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "maxItems": 256
+          },
+          "provenance": {
+            "type": "array",
+            "maxItems": 256,
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "source_digest"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "git_yaml",
+                    "repository_metadata",
+                    "hook_metadata",
+                    "review",
+                    "derived"
+                  ]
+                },
+                "source_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "truncated": {
+                  "const": true
+                }
+              },
+              "required": [
+                "truncated"
+              ]
+            },
+            "then": {
+              "required": [
+                "next_cursor"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "next_cursor"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "title": "Get knowledge proposal",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "schema_binding": {
+        "input_definition": "mcp_selector_input",
+        "output_definition": "mcp_proposal_page",
+        "equality": "registry schema must be exact JSON deep-equal to named schemas.json definition after resolving local refs",
+        "input_digest": "sha256:b98f5bd68223815738473beda81b7c60f56b6f39a4d471a84c579d54f3664e0b",
+        "output_digest": "sha256:9779bdc3f52123749e78bd13fea0bc767dfb3ca4e815b52d9d10b73ace543fc1"
+      }
+    },
+    {
+      "name": "knowledge_get_review",
+      "title": "Get knowledge review",
+      "description": "Read reviews by ID or stable cursor.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "default": 50
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "id"
+            ]
+          },
+          {
+            "required": [
+              "cursor"
+            ]
+          },
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "id"
+                  ]
+                },
+                {
+                  "required": [
+                    "cursor"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contract_version",
+          "state",
+          "items",
+          "diagnostics",
+          "provenance",
+          "truncated"
+        ],
+        "properties": {
+          "contract_version": {
+            "const": "projectlore-acquisition-tools/0.6.1"
+          },
+          "state": {
+            "enum": [
+              "missing",
+              "present",
+              "malformed"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_version",
+                "review_id",
+                "proposal_id",
+                "proposal_digest",
+                "disposition",
+                "actor",
+                "decided_at"
+              ],
+              "properties": {
+                "contract_version": {
+                  "const": "projectlore-knowledge-review/0.6.1"
+                },
+                "review_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "proposal_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "proposal_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "disposition": {
+                  "enum": [
+                    "accept",
+                    "reject",
+                    "revise"
+                  ]
+                },
+                "actor": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "decided_at": {
+                  "$ref": "#/$defs/utc"
+                },
+                "revision_note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "released_evidence_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 256,
+                  "uniqueItems": true,
+                  "x-order": "ascending UTF-8 bytes",
+                  "items": {
+                    "$ref": "#/$defs/digest"
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "disposition": {
+                        "const": "revise"
+                      }
+                    },
+                    "required": [
+                      "disposition"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "revision_note",
+                      "released_evidence_ids"
+                    ]
+                  },
+                  "else": {
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "revision_note"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "released_evidence_ids"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "maxItems": 256
+          },
+          "provenance": {
+            "type": "array",
+            "maxItems": 256,
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "source_digest"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "git_yaml",
+                    "repository_metadata",
+                    "hook_metadata",
+                    "review",
+                    "derived"
+                  ]
+                },
+                "source_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "truncated": {
+                  "const": true
+                }
+              },
+              "required": [
+                "truncated"
+              ]
+            },
+            "then": {
+              "required": [
+                "next_cursor"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "next_cursor"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "title": "Get knowledge review",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "schema_binding": {
+        "input_definition": "mcp_selector_input",
+        "output_definition": "mcp_review_page",
+        "equality": "registry schema must be exact JSON deep-equal to named schemas.json definition after resolving local refs",
+        "input_digest": "sha256:9ac257dab06b72f8d879db606f11b164aa48e3fdeabdcb78abef81ba5f533293",
+        "output_digest": "sha256:a0deb7922cd4d438f2c86020b9163de75b12a61b5e3cfaee37c761b605fd2e22"
+      }
+    },
+    {
+      "name": "knowledge_get_receipt",
+      "title": "Get knowledge receipt",
+      "description": "Read receipts by ID or stable cursor.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "default": 50
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "id"
+            ]
+          },
+          {
+            "required": [
+              "cursor"
+            ]
+          },
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "id"
+                  ]
+                },
+                {
+                  "required": [
+                    "cursor"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contract_version",
+          "state",
+          "items",
+          "diagnostics",
+          "provenance",
+          "truncated"
+        ],
+        "properties": {
+          "contract_version": {
+            "const": "projectlore-acquisition-tools/0.6.1"
+          },
+          "state": {
+            "enum": [
+              "missing",
+              "present",
+              "malformed"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_version",
+                "receipt_id",
+                "review_id",
+                "result",
+                "before_root",
+                "after_root",
+                "transition_id",
+                "created_at"
+              ],
+              "properties": {
+                "contract_version": {
+                  "const": "projectlore-knowledge-receipt/0.6.1"
+                },
+                "receipt_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "review_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "result": {
+                  "enum": [
+                    "accepted",
+                    "rejected",
+                    "revision_released",
+                    "claim_failed"
+                  ]
+                },
+                "before_root": {
+                  "$ref": "#/$defs/digest"
+                },
+                "after_root": {
+                  "$ref": "#/$defs/digest"
+                },
+                "transition_id": {
+                  "$ref": "#/$defs/digest"
+                },
+                "created_at": {
+                  "$ref": "#/$defs/utc"
+                }
+              }
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "maxItems": 256
+          },
+          "provenance": {
+            "type": "array",
+            "maxItems": 256,
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_kind",
+                "source_digest"
+              ],
+              "properties": {
+                "source_kind": {
+                  "enum": [
+                    "git_yaml",
+                    "repository_metadata",
+                    "hook_metadata",
+                    "review",
+                    "derived"
+                  ]
+                },
+                "source_digest": {
+                  "$ref": "#/$defs/digest"
+                },
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "truncated": {
+                  "const": true
+                }
+              },
+              "required": [
+                "truncated"
+              ]
+            },
+            "then": {
+              "required": [
+                "next_cursor"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "next_cursor"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "title": "Get knowledge receipt",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "schema_binding": {
+        "input_definition": "mcp_selector_input",
+        "output_definition": "mcp_receipt_page",
+        "equality": "registry schema must be exact JSON deep-equal to named schemas.json definition after resolving local refs",
+        "input_digest": "sha256:a23e846c6fad0ac4ac91fdcffe0da4d5eabe9940e71d47cdf048670bd26c31f7",
+        "output_digest": "sha256:d6841b44671ee8a1a49bb8cdc77ba3c55efdb7f91a723d631c9d22e14ee7fec9"
+      }
+    }
+  ],
+  "result_rule": "Success contains structuredContent conforming to outputSchema and one text content block containing identical RFC8785 JCS. Invalid JSON-RPC/unknown tool/invalid arguments use JSON-RPC error. Domain/state failures use result.isError=true with structuredContent {code,message,retryable}; missing valid state is successful state=missing. Every successful page requires at least one provenance record even when items is empty (state provenance)."
+}

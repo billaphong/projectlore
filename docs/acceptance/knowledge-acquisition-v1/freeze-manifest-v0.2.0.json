@@ -1,0 +1,26 @@
+{
+  "package_id": "projectlore-knowledge-acquisition-acceptance",
+  "version": "0.2.0",
+  "supersedes": "0.1.0",
+  "baseline_revision": "c02b1cc761014c37ccf8c6f0a12284bb7c78cf4c",
+  "artifacts": {
+    "AGENTS.md": "99bdec9fdc61cc16394b34a156456f89a21eb8fbde265372ea642108bce2740e",
+    "docs/acceptance/knowledge-acquisition-v1/evidence-record-v0.2.0.md": "efaff00c1ebda928e59fda9887c91d38d1009c60c2168f47e37b99d90bf2ab6b",
+    "docs/architecture.md": "932a91380c77a244b27e2e6c0463b7cd204ee69a5edcf56456fb9f0be15ce176",
+    "docs/contracts/knowledge-acquisition-v1.md": "dbc3a522afb79214ecd34290c661d8a8f8b9d5e95215d8e8bf37a8c7d90d27db",
+    "docs/plans/knowledge-acquisition-v1.12.handoff.json": "51c7dec9b308c99641ec54ea56957e6ec4bd842f787554603f2ed120710b3804",
+    "docs/plans/knowledge-acquisition-v1.12.review.md": "1e18fc2df2a74e6eab19758f0d28a1f54ff6b6937ea380dbba8f8f3560a566ba",
+    "pyproject.toml": "6da0ed8344fc4b3ef28fb202d29b85006957ed3f13a5bd8eb3037ae0f2296882",
+    "tests/acceptance/test_knowledge_acquisition_contract.py": "a7e9c5d492d20e3681ad6b79ee4df28579fb872f729bea9a1baa736049ccfc07",
+    "tests/acceptance/test_knowledge_acquisition_public_surface_v02.py": "25bf2609995b7f059cacd3804d102eddd6268f27e2a418823e7951a5d3e2a067"
+  },
+  "environment": {
+    "python": "3.11.3",
+    "pytest": "8.4.2",
+    "platform": "Windows",
+    "selection_v02": "27 selected; 0 skipped; 0 retries",
+    "result_v02": "25 expected-red; 2 unexpected-green"
+  },
+  "freeze_closure": "incomplete",
+  "unfrozen": "exact Phase 1 schemas, deterministic fault-control contract, client matrix/configuration, and E2E corpus listed in evidence record"
+}

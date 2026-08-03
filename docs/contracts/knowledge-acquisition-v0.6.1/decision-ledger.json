@@ -1,0 +1,226 @@
+{
+  "contract_version": "projectlore-acquisition-decisions/0.6.1",
+  "entries": [
+    {
+      "id": "G01",
+      "class": "governed",
+      "classification": "normative",
+      "value": "Git YAML sole canonical truth; accept+apply only mutation",
+      "exact_schema_or_bound": "README; schemas review/receipt",
+      "source_rationale": "AGENTS architecture; KA-01/03/13",
+      "alternatives": [
+        "workflow canonical"
+      ],
+      "compatibility_consequence": "preserves core query authority",
+      "falsifier_validation": "any read/hook changes canonical digest"
+    },
+    {
+      "id": "G02",
+      "class": "governed",
+      "classification": "normative",
+      "value": "canonical then workflow continuous locks and old/new recovery",
+      "exact_schema_or_bound": "fault state table/model checker",
+      "source_rationale": "plans v1.7-v1.12",
+      "alternatives": [
+        "release/reacquire"
+      ],
+      "compatibility_consequence": "all writers use shared admission",
+      "falsifier_validation": "neither/mixed/deadlock trace"
+    },
+    {
+      "id": "G03",
+      "class": "governed",
+      "classification": "normative",
+      "value": "Stop metadata-only advisory; no prompt/transcript persistence",
+      "exact_schema_or_bound": "schemas hook input; semantic privacy; hook fixtures",
+      "source_rationale": "KA-05/KO-02",
+      "alternatives": [
+        "excerpt capture"
+      ],
+      "compatibility_consequence": "exit zero",
+      "falsifier_validation": "privacy canary persists"
+    },
+    {
+      "id": "G04",
+      "class": "governed",
+      "classification": "normative",
+      "value": "removal preserves canonical YAML/core integrations and proves queries equal",
+      "exact_schema_or_bound": "removal-contract",
+      "source_rationale": "KA-12/KR-06",
+      "alternatives": [
+        "broad cleanup"
+      ],
+      "compatibility_consequence": "existing remove behavior retained",
+      "falsifier_validation": "before/after digest differs"
+    },
+    {
+      "id": "D01",
+      "class": "derivable",
+      "classification": "normative",
+      "value": "strict UTF-8, NFC/confined path, real UTC calendar and deterministic graph/order rules",
+      "exact_schema_or_bound": "semantic-validator",
+      "source_rationale": "determinism, confinement, RFC3339/Unicode plus architecture",
+      "alternatives": [
+        "platform normalization"
+      ],
+      "compatibility_consequence": "unsafe or non-production state refuses/quarantines",
+      "falsifier_validation": "cross-platform bytes differ or negative vector passes"
+    },
+    {
+      "id": "D02",
+      "class": "derivable",
+      "classification": "normative",
+      "value": "MCP JSON-RPC error/result placement and structured/text parity",
+      "exact_schema_or_bound": "mcp registry/fixtures",
+      "source_rationale": "official MCP 2025-06-18",
+      "alternatives": [
+        "custom envelope"
+      ],
+      "compatibility_consequence": "standard clients interoperate",
+      "falsifier_validation": "official schema rejects fixture"
+    },
+    {
+      "id": "C01",
+      "class": "compatibility",
+      "classification": "provisional",
+      "value": "Required matrix: Windows/Linux/macOS Ãƒâ€” Claude Code 2.1.220/Codex CLI 0.146.0 = six successful cells",
+      "exact_schema_or_bound": "platform-renderer; package-proof support_matrix; client receipt",
+      "source_rationale": "official client syntax plus repository candidate matrix",
+      "alternatives": [
+        "raise minima",
+        "latest-only"
+      ],
+      "compatibility_consequence": "other versions non-pass",
+      "falsifier_validation": "exact-version receipt fails",
+      "recommendation": "accept only after receipts on claimed platforms"
+    },
+    {
+      "id": "P01",
+      "class": "irreducible_product_policy",
+      "classification": "provisional",
+      "value": "RFC8785 JCS, SHA-256 and exact digest domains/exclusions",
+      "exact_schema_or_bound": "digest-registry",
+      "source_rationale": "standards define mechanisms, not product selection",
+      "alternatives": [
+        "canonical CBOR",
+        "raw bytes"
+      ],
+      "compatibility_consequence": "future accepted version changes require a separately authorized registry",
+      "falsifier_validation": "golden mismatch/owner choice",
+      "recommendation": "accept portable inspectable convention"
+    },
+    {
+      "id": "P02",
+      "class": "irreducible_product_policy",
+      "classification": "provisional",
+      "value": "complete persisted/public object shapes and PLKA allocation",
+      "exact_schema_or_bound": "schemas; semantic-validator codes",
+      "source_rationale": "plans delegate shapes/code range",
+      "alternatives": [
+        "event union",
+        "shared core codes"
+      ],
+      "compatibility_consequence": "unknown fields/codes invalid",
+      "falsifier_validation": "schema/vector/collision",
+      "recommendation": "accept strict versioned contract and publish code registry"
+    },
+    {
+      "id": "P03",
+      "class": "irreducible_product_policy",
+      "classification": "provisional",
+      "value": "separate constructor-injected fault test-support artifact",
+      "exact_schema_or_bound": "fault-contract",
+      "source_rationale": "fault proof required, seam not prescribed",
+      "alternatives": [
+        "external killer",
+        "monkeypatch"
+      ],
+      "compatibility_consequence": "production wheel seam absent",
+      "falsifier_validation": "absence/model oracle fails",
+      "recommendation": "accept strongest isolation"
+    },
+    {
+      "id": "P04",
+      "class": "irreducible_product_policy",
+      "classification": "provisional",
+      "value": "five read-only MCP tools, selectors and pagination 1..256/default50",
+      "exact_schema_or_bound": "mcp-registry",
+      "source_rationale": "MCP does not select product tool set",
+      "alternatives": [
+        "one snapshot",
+        "resources"
+      ],
+      "compatibility_consequence": "separate sidecar; core 0.4 unchanged",
+      "falsifier_validation": "client/fixture usability fails",
+      "recommendation": "accept minimal surface"
+    },
+    {
+      "id": "P05",
+      "class": "irreducible_product_policy",
+      "classification": "provisional",
+      "value": "hook 1MiB/32 containers/100000 nodes/2s; persisted object 1MiB; signals 256/pending 4096; retention 1024; case 30s/suite 600s/client 120s",
+      "exact_schema_or_bound": "schemas, hook-fixtures, package-proof",
+      "source_rationale": "plans require bounds but not values",
+      "alternatives": [
+        "remeasured values"
+      ],
+      "compatibility_consequence": "exact N/N+1/refusal behavior",
+      "falsifier_validation": "boundary/max-of-30/p95/RSS evidence",
+      "recommendation": "accept only after platform measurements"
+    },
+    {
+      "id": "P06",
+      "class": "irreducible_product_policy",
+      "classification": "provisional",
+      "value": "CLI nesting and existing remove extension plus explicit quarantine repair command",
+      "exact_schema_or_bound": "quarantine/removal commands",
+      "source_rationale": "operations governed, spelling delegated",
+      "alternatives": [
+        "top-level verbs"
+      ],
+      "compatibility_consequence": "existing remove flags preserved",
+      "falsifier_validation": "parser/regression/usability fails",
+      "recommendation": "accept discoverable hierarchy"
+    },
+    {
+      "id": "G05",
+      "class": "governed",
+      "classification": "normative",
+      "value": "Uncommitted acquisition proposal formats 0.1-0.5 refuse/quarantine and never migrate or activate",
+      "exact_schema_or_bound": "migration-registry quarantine schema/codes",
+      "source_rationale": "no shipped source authority/schema identity exists; canonical-source safety",
+      "alternatives": [
+        "invent transforms"
+      ],
+      "compatibility_consequence": "proposal state is not reusable",
+      "falsifier_validation": "any proposal object activates or changes canonical digest"
+    },
+    {
+      "id": "D03",
+      "class": "derivable",
+      "classification": "normative",
+      "value": "Aggregate readiness receipt requires exact six-cell evidence and binds all candidate identities",
+      "exact_schema_or_bound": "schemas readiness_receipt; package-proof aggregate",
+      "source_rationale": "anti-replay and complete evidence follow from candidate identity and declared matrix",
+      "alternatives": [
+        "loose evidence directory"
+      ],
+      "compatibility_consequence": "missing/mismatch is non-ready",
+      "falsifier_validation": "replay/substitution/omission vector produces ready"
+    },
+    {
+      "id": "G06",
+      "class": "governed",
+      "classification": "normative",
+      "value": "Current-format corrupt/fork state repairs only from one verified prior branch; otherwise refuses or uses explicit remove/re-onboard preserving canonical queries",
+      "exact_schema_or_bound": "recovery-contract; schemas repair_evidence/repair_preview/lifecycle_receipt; PLKA6007-6011",
+      "source_rationale": "KR-05 fail-closed recovery, KA-12/KR-06 canonical preservation",
+      "alternatives": [
+        "guess branch",
+        "silently reset"
+      ],
+      "compatibility_consequence": "ambiguous forks remain unavailable until explicit operator path",
+      "falsifier_validation": "unverified/ambiguous branch activates or canonical/query digest changes"
+    }
+  ]
+}

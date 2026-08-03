@@ -1,0 +1,593 @@
+{
+  "$defs": {
+    "CandidateFile": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "digest"
+      ],
+      "title": "CandidateFile",
+      "type": "object"
+    },
+    "Diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^PLKA[1-7][0-9]{3}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    },
+    "Generation": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-generation/0.6.1",
+          "default": "projectlore-knowledge-generation/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "generation_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Generation Id",
+          "type": "string"
+        },
+        "root_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Root Digest",
+          "type": "string"
+        },
+        "sequence": {
+          "maximum": 9223372036854776000,
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "state": {
+          "$ref": "#/$defs/GenerationState"
+        }
+      },
+      "required": [
+        "generation_id",
+        "sequence",
+        "state",
+        "root_digest"
+      ],
+      "title": "Generation",
+      "type": "object"
+    },
+    "GenerationState": {
+      "enum": [
+        "pending",
+        "outstanding",
+        "reviewed",
+        "commit_claimed",
+        "terminal",
+        "claim_failed",
+        "corrupt"
+      ],
+      "title": "GenerationState",
+      "type": "string"
+    },
+    "KnowledgeCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Candidate Digest",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "projectlore-knowledge-candidate/0.6.1",
+          "default": "projectlore-knowledge-candidate/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/CandidateFile"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Files",
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidate_digest",
+        "files"
+      ],
+      "title": "KnowledgeCandidate",
+      "type": "object"
+    },
+    "KnowledgePacket": {
+      "additionalProperties": false,
+      "properties": {
+        "base_model_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Base Model Digest",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "projectlore-knowledge-packet/0.6.1",
+          "default": "projectlore-knowledge-packet/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "packet_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Packet Id",
+          "type": "string"
+        },
+        "signal_ids": {
+          "items": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Signal Ids",
+          "type": "array"
+        },
+        "state": {
+          "const": "outstanding",
+          "default": "outstanding",
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "packet_id",
+        "base_model_digest",
+        "signal_ids"
+      ],
+      "title": "KnowledgePacket",
+      "type": "object"
+    },
+    "KnowledgeProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "base_model_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Base Model Digest",
+          "type": "string"
+        },
+        "candidate": {
+          "$ref": "#/$defs/KnowledgeCandidate"
+        },
+        "classification": {
+          "$ref": "#/$defs/ProposalClassification"
+        },
+        "contract_version": {
+          "const": "projectlore-knowledge-proposal/0.6.1",
+          "default": "projectlore-knowledge-proposal/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "proposal_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "base_model_digest",
+        "candidate",
+        "evidence_ids",
+        "classification"
+      ],
+      "title": "KnowledgeProposal",
+      "type": "object"
+    },
+    "KnowledgeReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "after_root": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "After Root",
+          "type": "string"
+        },
+        "before_root": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Before Root",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "projectlore-knowledge-receipt/0.6.1",
+          "default": "projectlore-knowledge-receipt/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "receipt_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/ReceiptResult"
+        },
+        "review_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Review Id",
+          "type": "string"
+        },
+        "transition_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Transition Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "review_id",
+        "result",
+        "before_root",
+        "after_root",
+        "transition_id",
+        "created_at"
+      ],
+      "title": "KnowledgeReceipt",
+      "type": "object"
+    },
+    "KnowledgeReview": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "projectlore-knowledge-review/0.6.1",
+          "default": "projectlore-knowledge-review/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "disposition": {
+          "$ref": "#/$defs/ReviewDisposition"
+        },
+        "proposal_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Proposal Digest",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "released_evidence_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "maxItems": 256,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Released Evidence Ids"
+        },
+        "review_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Review Id",
+          "type": "string"
+        },
+        "revision_note": {
+          "anyOf": [
+            {
+              "maxLength": 4096,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision Note"
+        }
+      },
+      "required": [
+        "review_id",
+        "proposal_id",
+        "proposal_digest",
+        "disposition",
+        "actor",
+        "decided_at"
+      ],
+      "title": "KnowledgeReview",
+      "type": "object"
+    },
+    "KnowledgeRoot": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-knowledge-root/0.6.1",
+          "default": "projectlore-knowledge-root/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "generation_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Generation Id",
+          "type": "string"
+        },
+        "members": {
+          "default": [],
+          "items": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 1024,
+          "title": "Members",
+          "type": "array"
+        },
+        "root_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Root Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root_digest",
+        "generation_id"
+      ],
+      "title": "KnowledgeRoot",
+      "type": "object"
+    },
+    "KnowledgeSignal": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "title": "Complete",
+          "type": "boolean"
+        },
+        "contract_version": {
+          "const": "projectlore-knowledge-signal/0.6.1",
+          "default": "projectlore-knowledge-signal/0.6.1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "event": {
+          "$ref": "#/$defs/SignalEvent"
+        },
+        "observed_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Observed Digest",
+          "type": "string"
+        },
+        "overflow_count": {
+          "anyOf": [
+            {
+              "maximum": 2147483647,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overflow Count"
+        },
+        "paths": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Paths",
+          "type": "array"
+        },
+        "provenance": {
+          "items": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Provenance",
+          "type": "array"
+        },
+        "repository_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Repository Id",
+          "type": "string"
+        },
+        "signal_id": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Signal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal_id",
+        "event",
+        "repository_id",
+        "observed_digest",
+        "provenance",
+        "complete"
+      ],
+      "title": "KnowledgeSignal",
+      "type": "object"
+    },
+    "ProposalClassification": {
+      "enum": [
+        "asserted",
+        "inferred_suggestion"
+      ],
+      "title": "ProposalClassification",
+      "type": "string"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revision"
+        },
+        "source_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Digest",
+          "type": "string"
+        },
+        "source_kind": {
+          "$ref": "#/$defs/SourceKind"
+        }
+      },
+      "required": [
+        "source_kind",
+        "source_digest"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "ReceiptResult": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "revision_released",
+        "claim_failed"
+      ],
+      "title": "ReceiptResult",
+      "type": "string"
+    },
+    "ReviewDisposition": {
+      "enum": [
+        "accept",
+        "reject",
+        "revise"
+      ],
+      "title": "ReviewDisposition",
+      "type": "string"
+    },
+    "SignalEvent": {
+      "enum": [
+        "bootstrap",
+        "stop",
+        "scan",
+        "overflow"
+      ],
+      "title": "SignalEvent",
+      "type": "string"
+    },
+    "SourceKind": {
+      "enum": [
+        "git_yaml",
+        "repository_metadata",
+        "hook_metadata",
+        "review",
+        "derived"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    }
+  },
+  "$id": "https://projectlore.ai/schema/acquisition-kernel-0.6.1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-projectlore-public-contracts": [
+    "CandidateFile",
+    "Diagnostic",
+    "Generation",
+    "KnowledgeCandidate",
+    "KnowledgePacket",
+    "KnowledgeProposal",
+    "KnowledgeReceipt",
+    "KnowledgeReview",
+    "KnowledgeRoot",
+    "KnowledgeSignal",
+    "Provenance"
+  ]
+}

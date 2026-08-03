@@ -3,8 +3,18 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+from jsonschema import Draft202012Validator
+
+from projectlore.acquisition.onboarding import start_onboarding
 from projectlore.integration import apply_instruction_previews, instruction_previews
-from projectlore.removal import apply_removal, removal_previews
+from projectlore.onboarding import apply_initialization, initialization_previews
+from projectlore.removal import (
+    acquisition_removal_preview,
+    apply_acquisition_removal,
+    apply_removal,
+    removal_previews,
+)
 
 
 def test_removal_preserves_client_owned_content_and_deletes_generated_state(
@@ -59,3 +69,40 @@ def test_removal_preserves_client_owned_content_and_deletes_generated_state(
     assert hooks == [{"hooks": [{"command": "owner-hook"}]}]
     assert not (state / "workflow-context.json").exists()
     assert not (trust / "codex_cli.json").exists()
+
+
+def test_acquisition_removal_is_digest_bound_and_preserves_queries(
+    tmp_path: Path,
+) -> None:
+    apply_initialization(initialization_previews(tmp_path, project_name="Acme"))
+    start_onboarding(tmp_path)
+    preview = acquisition_removal_preview(tmp_path)
+    result = apply_acquisition_removal(tmp_path, str(preview["preview_digest"]))
+    assert result["applied"] is True
+    receipt = result["receipt"]
+    assert receipt["canonical_before"] == receipt["canonical_after"]
+    assert receipt["query_equivalence"]
+    assert receipt["query_equivalence"]["suite_digest"] == (
+        "sha256:13b074e029b517b862ac3210e472d1f4b30430aa884841819b0e4b5388680156"
+    )
+    schema = json.loads(
+        Path("docs/contracts/knowledge-acquisition-v0.6.1/schemas.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    Draft202012Validator({**schema, "$ref": "#/$defs/lifecycle_receipt"}).validate(
+        receipt
+    )
+    knowledge = tmp_path / ".projectlore" / "knowledge"
+    assert not any(
+        path.is_file() and "locks" not in path.relative_to(knowledge).parts
+        for path in knowledge.rglob("*")
+    )
+
+
+def test_acquisition_removal_rejects_stale_preview(tmp_path: Path) -> None:
+    apply_initialization(initialization_previews(tmp_path, project_name="Acme"))
+    preview = acquisition_removal_preview(tmp_path)
+    (tmp_path / ".mcp.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError, match="PLKA6001"):
+        apply_acquisition_removal(tmp_path, str(preview["preview_digest"]))

@@ -1,0 +1,62 @@
+{
+  "binding_version": "projectlore-phase-5-source-binding/0.6.1",
+  "status": "source_bound_release_candidate",
+  "issued_at": "2026-08-02T22:15:02Z",
+  "source": {
+    "commit": "f4f35c7b8e2376671f6df9e10c447d137a9fafc9",
+    "tree": "6b2dda86bea6ca3286d342c9c85ab3d674268206",
+    "contract_manifest_sha256": "7cacee56a2e0f3fa6bbb3946117aa99c28198b602f1db351795ad53f664cd3ee",
+    "checkout": "detached clean worktree",
+    "source_date_epoch": 1785708550
+  },
+  "artifacts": [
+    {
+      "filename": "projectlore-0.1.0a3-py3-none-any.whl",
+      "size": 132179,
+      "sha256": "dd2dceee00b2900434f7d1700fb0ef016864d4bf65d62a79495a6fb2b664ad02",
+      "record_sha256": "e32439c84b9af6d966926b9f01383f8908bfc0d0c3ee7f9a6b36788aa9d48c43"
+    },
+    {
+      "filename": "projectlore-0.1.0a3.tar.gz",
+      "size": 143967,
+      "sha256": "5c96f9e0eccd2494393e0914bfd7d8896946bdfe9501fc48d92b14afe7780df5"
+    },
+    {
+      "filename": "projectlore_knowledge_fault_test_support-0.6.1-py3-none-any.whl",
+      "size": 6348,
+      "sha256": "316d7d014528587a95f92ff285463ab234eab37a420ba467662bf9d80af99bc3",
+      "record_sha256": "513d686769bc4699c6e48c245a005594288fb7288affc64a97d99de0bd453680"
+    },
+    {
+      "filename": "projectlore_knowledge_fault_test_support-0.6.1.tar.gz",
+      "size": 4148,
+      "sha256": "8ca996cb26ef47ed3daa0c0b33cf106ad7a20131d2f3d8cc0dcf1fe0301ec57d"
+    }
+  ],
+  "build": {
+    "procedure": "two fresh detached checkouts of the bound commit; SOURCE_DATE_EPOCH set to the bound commit timestamp; python -m build for the production and fault-support projects",
+    "reproducibility": "all four SHA-256 digests matched byte-for-byte across both fresh checkouts",
+    "supersedes_precommit_artifacts": true
+  },
+  "verification": {
+    "pytest": "pass with 8 deferred environment skips",
+    "ruff": "pass",
+    "mypy": "pass across 52 source files",
+    "schema_currency": "pass",
+    "git_diff_check": "pass",
+    "archive_allow_list": "pass: production wheel 61 files, source archive 81 files",
+    "fresh_offline_wheel_installation": "pass",
+    "fault_support_separation": "pass for production and support wheel inventories"
+  },
+  "deferred_environment_acceptance": [
+    "tests/test_acquisition_kernel.py:213 - symlink creation unavailable",
+    "tests/test_acquisition_kernel.py:227 - symlink creation unavailable",
+    "tests/test_checker_security.py:126 - symlink creation unavailable on this platform",
+    "tests/test_source_policy.py:305 - creating a test symlink is not permitted",
+    "tests/test_workflow_state.py:155 - symbolic links are unavailable on this platform",
+    "tests/test_workflow_state.py:497 - symbolic links are unavailable on this platform",
+    "tests/test_workflow_target.py:50 - symbolic links are unavailable on this platform",
+    "tests/test_workflow_target.py:61 - symbolic links are unavailable on this platform"
+  ],
+  "acceptance_scope": "This binds the source release candidate and local artifact evidence only. Deferred symlink tests and the remaining cross-platform, network-denial, measurement, and real-client cells are not represented as passes or as full release verification."
+}

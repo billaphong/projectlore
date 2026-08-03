@@ -1,0 +1,111 @@
+{
+  "contract_version": "projectlore-acquisition-migration-registry/0.6.1",
+  "supported_migrations": [],
+  "authority": "No knowledge-acquisition persisted format has shipped. Proposal versions 0.1.0, 0.2.0, 0.3.0, 0.4.0 and 0.5.0 are non-production and have no normative source identity. They MUST NOT be transformed or activated.",
+  "production_inputs": {
+    "canonical_project_yaml": {
+      "schema": "schemas/projectlore.schema.json at source commit",
+      "behavior": "loaded by existing production loader, never migrated by acquisition"
+    },
+    "legacy_workflow_contracts": {
+      "behavior": "remain owned by existing explicit compatibility adapters; acquisition migration does not consume them"
+    }
+  },
+  "detection": {
+    "proposal_versions": [
+      "projectlore-knowledge-*/0.1.0",
+      "projectlore-knowledge-*/0.2.0",
+      "projectlore-knowledge-*/0.3.0",
+      "projectlore-knowledge-*/0.4.0",
+      "projectlore-knowledge-*/0.5.0"
+    ],
+    "unknown": "any acquisition object not exact 0.6.1"
+  },
+  "refusal": {
+    "proposal": "PLKA1010",
+    "unknown": "PLKA1001",
+    "malformed": "PLKA1007",
+    "digest_mismatch": "PLKA1002"
+  },
+  "quarantine_record": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "record_id",
+        "source_path",
+        "source_bytes_digest",
+        "detected_version",
+        "reason_code",
+        "quarantined_path",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "projectlore-quarantine-record/0.6.1"
+        },
+        "record_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_path": {
+          "type": "string"
+        },
+        "source_bytes_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "detected_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_code": {
+          "enum": [
+            "PLKA1010",
+            "PLKA1001",
+            "PLKA1007",
+            "PLKA1002"
+          ]
+        },
+        "quarantined_path": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        }
+      }
+    },
+    "digest": "domain projectlore:quarantine-record:0.6.1; exclude record_id,created_at; RFC8785 JCS SHA-256"
+  },
+  "operation": "Under workflow lock, copy exact rejected bytes to .projectlore/knowledge/quarantine/<source-bytes-sha256>.bin using stage/flush/atomic rename, write quarantine record, then remove no source and activate no root. If source is already outside acquisition state, record only and never move it.",
+  "goldens": [
+    {
+      "id": "proposal-v04",
+      "raw_utf8": "{\"contract_version\":\"projectlore-knowledge-root/0.4.0\"}",
+      "code": "PLKA1010",
+      "activated": false
+    },
+    {
+      "id": "unknown-v99",
+      "raw_utf8": "{\"contract_version\":\"projectlore-knowledge-root/99.0.0\"}",
+      "code": "PLKA1001",
+      "activated": false
+    },
+    {
+      "id": "malformed",
+      "raw_hex": "7b",
+      "code": "PLKA1007",
+      "activated": false
+    },
+    {
+      "id": "proposal-v05",
+      "raw_utf8": "{\"contract_version\":\"projectlore-knowledge-root/0.5.0\"}",
+      "code": "PLKA1010",
+      "activated": false
+    }
+  ],
+  "read_behavior": "Read never writes quarantine. It reports refusal and next_action=repair. Quarantine occurs only through previewed lore knowledge repair --quarantine --apply --preview-digest."
+}
