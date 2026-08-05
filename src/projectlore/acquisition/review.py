@@ -187,12 +187,16 @@ def apply_review(repository: Path, review_id: str) -> Path:
     return target
 
 
-def recover_commit_claim(repository: Path) -> str:
+def recover_commit_claim(repository: Path, *, lock_timeout: float = 5.0) -> str:
     """Resolve an interrupted canonical apply from persisted digest-bound evidence."""
 
     root = repository.resolve(strict=True)
     store = KnowledgeStore(root)
-    with CanonicalWorkflowTransaction(store):
+    generation = store.current_generation()
+    if generation.state is not GenerationState.COMMIT_CLAIMED:
+        return "unchanged"
+
+    with CanonicalWorkflowTransaction(store, timeout=lock_timeout):
         generation = store.current_generation()
         if generation.state is not GenerationState.COMMIT_CLAIMED:
             return "unchanged"

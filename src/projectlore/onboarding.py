@@ -268,10 +268,13 @@ def _merge_hooks(value: dict[str, Any], *, client: str) -> dict[str, Any]:
     entries = hooks.get("PreToolUse", [])
     if not isinstance(entries, list):
         raise ValueError("hooks.PreToolUse must be an array")
+    # A fresh Python policy process takes about one second on supported Windows
+    # clients before concurrent load. Ten seconds remains fail-bounded while
+    # avoiding false hook failures from ordinary cold-start variance.
     command = {
         "type": "command",
         "command": "projectlore-hook",
-        "timeout": 3,
+        "timeout": 10,
         "statusMessage": "Checking ProjectLore policy",
     }
     matcher = (
@@ -280,6 +283,9 @@ def _merge_hooks(value: dict[str, Any], *, client: str) -> dict[str, Any]:
         else ("Bash|apply_patch|Edit|Write")
     )
     desired = {"matcher": matcher, "hooks": [command]}
+    legacy_command = {**command, "timeout": 3}
+    legacy_desired = {"matcher": matcher, "hooks": [legacy_command]}
+    entries = [item for item in entries if item != legacy_desired]
     if desired not in entries:
         entries = [*entries, desired]
     hooks["PreToolUse"] = entries
@@ -292,23 +298,36 @@ def _merge_hooks(value: dict[str, Any], *, client: str) -> dict[str, Any]:
         "timeout": 15,
         "statusMessage": "Refreshing ProjectLore workflow scope",
     }
-    acquisition_command = {
+    session_acquisition_command = {
         "type": "command",
         "command": f"projectlore-acquisition-hook --client {client} --root .",
-        "timeout": 3,
+        "timeout": 2,
         "statusMessage": "Refreshing ProjectLore knowledge evidence",
     }
-    scope_desired = {"hooks": [scope_command, acquisition_command]}
+    scope_desired = {"hooks": [scope_command, session_acquisition_command]}
     # Upgrade the exact legacy entry instead of leaving two SessionStart jobs.
     legacy_scope = {"hooks": [scope_command]}
-    session_entries = [item for item in session_entries if item != legacy_scope]
+    legacy_session_acquisition = {**session_acquisition_command, "timeout": 3}
+    legacy_scope_with_acquisition = {
+        "hooks": [scope_command, legacy_session_acquisition]
+    }
+    session_entries = [
+        item
+        for item in session_entries
+        if item not in (legacy_scope, legacy_scope_with_acquisition)
+    ]
     if scope_desired not in session_entries:
         session_entries = [*session_entries, scope_desired]
     hooks["SessionStart"] = session_entries
     stop_entries = hooks.get("Stop", [])
     if not isinstance(stop_entries, list):
         raise ValueError("hooks.Stop must be an array")
-    stop_desired = {"hooks": [acquisition_command]}
+    stop_desired = {"hooks": [session_acquisition_command]}
+    legacy_stops = (
+        {"hooks": [{**session_acquisition_command, "timeout": 3}]},
+        {"hooks": [{**session_acquisition_command, "timeout": 10}]},
+    )
+    stop_entries = [item for item in stop_entries if item not in legacy_stops]
     if stop_desired not in stop_entries:
         stop_entries = [*stop_entries, stop_desired]
     hooks["Stop"] = stop_entries

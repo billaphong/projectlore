@@ -41,17 +41,18 @@ def main() -> int:
             return 0
         candidate = _candidate_request(cwd, tool_input)
         model_path = _model_setting(cwd)
-        service = ModelService(model_path)
+        project_root = project_root_for_model(model_path)
         if candidate is not None:
             request = PolicyRequest.model_validate_json(candidate)
         else:
-            facts = facts_from_tool_input(cwd, tool_input)
+            facts = facts_from_tool_input(project_root, tool_input)
             if facts is None:
                 return 0
             request = PolicyRequest(
                 facts=facts,
-                scope=load_scope_snapshot(cwd, required=False),
+                scope=load_scope_snapshot(project_root, required=False),
             )
+        service = ModelService(model_path)
         result = policy_check(
             service,
             request,
@@ -137,8 +138,26 @@ def _model_setting(cwd: Path) -> Path:
         configured = Path(value)
         if configured.is_absolute():
             return configured.resolve(strict=True)
-        return _confined_path(cwd, value)
-    return discover_model(cwd)
+        return _discover_ancestor_model(cwd, configured)
+    return _discover_ancestor_model(cwd)
+
+
+def _discover_ancestor_model(
+    cwd: Path, configured: Path | None = None
+) -> Path:
+    if configured is not None and ".." in configured.parts:
+        raise ValueError("PROJECTLORE_MODEL cannot traverse parent directories.")
+    for directory in (cwd, *cwd.parents):
+        if configured is not None:
+            candidate = directory / configured
+            if candidate.is_file():
+                return candidate.resolve(strict=True)
+            continue
+        try:
+            return discover_model(directory)
+        except FileNotFoundError:
+            continue
+    raise FileNotFoundError(f"No ProjectLore model found above: {cwd}")
 
 
 def _required_string(value: dict[str, Any], key: str) -> str:

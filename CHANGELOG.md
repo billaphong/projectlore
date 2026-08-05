@@ -2,12 +2,25 @@
 
 ## Unreleased
 
+- Fixed policy-hook repository discovery from nested working directories and
+  strengthened `lore doctor` to exercise the same nested-directory boundary.
+- Kept lifecycle acquisition hooks within client startup budgets by avoiding
+  unnecessary recovery locks and deferring quickly under live contention.
+- Emit Codex-compatible lifecycle JSON on both successful acquisition and
+  advisory paths so transient contention cannot become a malformed Stop hook.
+- Avoid compiling the project knowledge model for unrelated PreToolUse events,
+  keeping the policy gate responsive without reducing its enforcement surface.
+- Raise the bounded policy-hook client timeout from three to ten seconds and
+  migrate the exact legacy registration to tolerate cold and concurrent starts.
+- Correct Stop acquisition to persist only normalized lifecycle metadata rather
+  than synchronously scanning the repository, restoring the two-second advisory
+  hook boundary without blocking the client workflow.
 - Added onboarding and passive growth for provenance-bearing project knowledge,
   with explicit proposal, review, apply, recovery, repair, and compaction.
 - Added a separately versioned, five-tool read-only acquisition MCP sidecar and
   project-scoped Claude Code and trusted Codex CLI integration.
 - Added clean-wheel offline installation and real-client verification for the
-  `0.1.0a3` candidate.
+  `0.1.0a4` candidate.
 - Added execution-bound repository gate evidence 1.0 while retaining 0.1 as a
   frozen, non-promoting compatibility format.
 - Added a normative MCP ToolSpec and corrected `context_for_task.limit` parity.

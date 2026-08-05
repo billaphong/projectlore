@@ -52,7 +52,7 @@ def _tracked_paths(repository: Path) -> tuple[str, ...]:
     )
 
 
-def capture_scan(repository: Path) -> KnowledgeSignal:
+def capture_scan(repository: Path, *, lock_timeout: float = 5.0) -> KnowledgeSignal:
     """Persist hashes and paths only; never source text or provider output."""
 
     root = repository.resolve(strict=True)
@@ -103,6 +103,66 @@ def capture_scan(repository: Path) -> KnowledgeSignal:
         payload["overflow_count"] = overflow
     signal_id = content_digest("projectlore:knowledge-signal:0.6.1", payload)
     signal = KnowledgeSignal(signal_id=signal_id, **payload)
+    return _persist_signal(root, signal, lock_timeout=lock_timeout)
+
+
+def capture_hook_event(
+    repository: Path,
+    *,
+    client: str,
+    session_id: str,
+    changed_paths: tuple[str, ...] = (),
+    lock_timeout: float = 5.0,
+) -> KnowledgeSignal:
+    """Persist one bounded metadata-only Stop observation without scanning files."""
+
+    root = repository.resolve(strict=True)
+    if client not in {"claude_code", "codex_cli"}:
+        raise ValueError("unsupported acquisition hook client")
+    if not session_id or len(session_id) > 256:
+        raise ValueError("hook field 'session_id' must contain 1 to 256 characters")
+    normalized_paths = tuple(sorted(set(changed_paths)))
+    if len(normalized_paths) > MAX_PATHS:
+        raise ValueError("hook changed_paths exceeds 256")
+    for relative in normalized_paths:
+        candidate = Path(relative)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise ValueError(
+                f"hook changed path is not repository-relative: {relative}"
+            )
+    repository_id = repository_digest(root)
+    observation = {
+        "client": client,
+        "event": "Stop",
+        "repository_id": repository_id,
+        "session_id": session_id,
+        "changed_paths": list(normalized_paths),
+    }
+    observed_digest = content_digest(
+        "projectlore:hook-observation:0.6.1", observation
+    )
+    payload: dict[str, Any] = {
+        "contract_version": "projectlore-knowledge-signal/0.6.1",
+        "event": "stop",
+        "repository_id": repository_id,
+        "observed_digest": observed_digest,
+        "paths": list(normalized_paths),
+        "provenance": [
+            Provenance(
+                source_kind=SourceKind.HOOK_METADATA,
+                source_digest=observed_digest,
+            ).model_dump(mode="json", exclude_none=True)
+        ],
+        "complete": True,
+    }
+    signal_id = content_digest("projectlore:knowledge-signal:0.6.1", payload)
+    signal = KnowledgeSignal(signal_id=signal_id, **payload)
+    return _persist_signal(root, signal, lock_timeout=lock_timeout)
+
+
+def _persist_signal(
+    root: Path, signal: KnowledgeSignal, *, lock_timeout: float
+) -> KnowledgeSignal:
     store = KnowledgeStore(root)
     store.initialize()
     stored = store.put_object(
@@ -110,11 +170,11 @@ def capture_scan(repository: Path) -> KnowledgeSignal:
         signal.model_dump(mode="json", exclude_none=True),
         exclude=("signal_id",),
     )
-    if stored != signal_id:
-        raise RuntimeError("scan signal identity mismatch")
+    if stored != signal.signal_id:
+        raise RuntimeError("knowledge signal identity mismatch")
     current = store.current_root()
-    if signal_id not in current.members:
-        WorkflowTransaction(store).commit((*current.members, signal_id))
+    if signal.signal_id not in current.members:
+        WorkflowTransaction(store, timeout=lock_timeout).commit((signal.signal_id,))
     return signal
 
 
@@ -148,7 +208,9 @@ def _outstanding_packet(objects: list[dict[str, Any]]) -> KnowledgePacket | None
     return None
 
 
-def next_packet(repository: Path) -> KnowledgePacket | None:
+def next_packet(
+    repository: Path, *, lock_timeout: float = 5.0
+) -> KnowledgePacket | None:
     """Return the one outstanding packet or lease all pending signals once."""
 
     root = repository.resolve(strict=True)
@@ -199,8 +261,7 @@ def next_packet(repository: Path) -> KnowledgePacket | None:
         packet.model_dump(mode="json"),
         exclude=("packet_id",),
     )
-    current = store.current_root()
-    WorkflowTransaction(store).commit((*current.members, packet_id))
+    WorkflowTransaction(store, timeout=lock_timeout).commit((packet_id,))
     return packet
 
 

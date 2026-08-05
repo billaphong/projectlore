@@ -29,7 +29,7 @@ Before changing a target project, confirm:
 - Claude Code 2.1.220 or newer and/or Codex CLI 0.146.0 or newer is installed;
 - the person responsible for the repository can review project MCP and hook
   configuration; and
-- the ProjectLore `0.1.0a3` wheel or exact source checkout is available.
+- the ProjectLore `0.1.0a4` wheel or exact source checkout is available.
 
 The supported alpha matrix is CPython 3.11 and 3.13 on Windows, Ubuntu, and
 macOS. Other Python 3.11+ versions are expected to work but are not release
@@ -38,12 +38,12 @@ access for its standalone core.
 
 ## 1. Obtain and install the alpha
 
-`0.1.0a3` is not published to a package index. Do not run
-`pip install projectlore==0.1.0a3`. Use one of these reviewed paths.
+`0.1.0a4` is not published to a package index. Do not run
+`pip install projectlore==0.1.0a4`. Use one of these reviewed paths.
 
 ### Option A: install the verified wheel
 
-Download the `projectlore-0.1.0a3` artifact only from a successful workflow for
+Download the `projectlore-0.1.0a4` artifact only from a successful workflow for
 the reviewed source commit. Compare its published SHA-256 receipt before
 installation. Until that workflow exists, build from the exact checkout using
 Option B; do not reuse hashes from an earlier alpha.
@@ -51,19 +51,19 @@ Option B; do not reuse hashes from an earlier alpha.
 Verify the downloaded wheel before installing it. PowerShell example:
 
 ```powershell
-Get-FileHash .\projectlore-0.1.0a3-py3-none-any.whl -Algorithm SHA256
-python -m venv C:\Tools\projectlore-0.1.0a3
-C:\Tools\projectlore-0.1.0a3\Scripts\python.exe -m pip install `
-  .\projectlore-0.1.0a3-py3-none-any.whl
+Get-FileHash .\projectlore-0.1.0a4-py3-none-any.whl -Algorithm SHA256
+python -m venv C:\Tools\projectlore-0.1.0a4
+C:\Tools\projectlore-0.1.0a4\Scripts\python.exe -m pip install `
+  .\projectlore-0.1.0a4-py3-none-any.whl
 ```
 
 POSIX shell example:
 
 ```shell
-sha256sum ./projectlore-0.1.0a3-py3-none-any.whl
-python -m venv "$HOME/.local/share/projectlore/0.1.0a3"
-"$HOME/.local/share/projectlore/0.1.0a3/bin/python" -m pip install \
-  ./projectlore-0.1.0a3-py3-none-any.whl
+sha256sum ./projectlore-0.1.0a4-py3-none-any.whl
+python -m venv "$HOME/.local/share/projectlore/0.1.0a4"
+"$HOME/.local/share/projectlore/0.1.0a4/bin/python" -m pip install \
+  ./projectlore-0.1.0a4-py3-none-any.whl
 ```
 
 Add that environment's executable directory to the shell `PATH`, or always

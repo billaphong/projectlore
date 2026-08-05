@@ -84,6 +84,8 @@ def test_doctor_proves_versions_mcp_identity_and_blocking_hook(
     assert result["operational"] is True
     assert all(result["checks"].values())
     assert result["hook_probe"]["returncode"] == 2
+    assert Path(result["hook_probe"]["cwd"]) == tmp_path / ".claude"
+    assert result["hook_probe"]["model_discovery"] == "ancestor"
     assert result["process_probe"]["initialized"] is True
     assert result["enforcement_state"] == "configured_executable_trust_verified"
 

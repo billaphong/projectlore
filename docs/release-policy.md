@@ -2,7 +2,7 @@
 
 ## Alpha artifact
 
-`0.1.0a3` is a prepared release candidate, not an authorized package-index
+`0.1.0a4` is a prepared release candidate, not an authorized package-index
 publication. Build from a clean, annotated commit using Python 3.11 or newer:
 
 ```shell

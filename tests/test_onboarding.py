@@ -120,6 +120,52 @@ def test_initialization_upgrades_legacy_scope_hook_without_duplicate(
     ]
 
 
+def test_initialization_upgrades_legacy_policy_timeout_without_duplicate(
+    tmp_path: Path,
+) -> None:
+    hooks_path = tmp_path / ".codex" / "hooks.json"
+    hooks_path.parent.mkdir()
+    legacy = {
+        "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Bash|apply_patch|Edit|Write",
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "projectlore-hook",
+                            "timeout": 3,
+                            "statusMessage": "Checking ProjectLore policy",
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+    hooks_path.write_text(json.dumps(legacy), encoding="utf-8")
+
+    apply_initialization(initialization_previews(tmp_path, project_name="Acme"))
+
+    value = json.loads(hooks_path.read_text(encoding="utf-8"))
+    entries = value["hooks"]["PreToolUse"]
+    assert len(entries) == 1
+    assert entries[0]["hooks"][0]["timeout"] == 10
+
+
+def test_initialization_upgrades_acquisition_hooks_to_contract_wall_time(
+    tmp_path: Path,
+) -> None:
+    apply_initialization(initialization_previews(tmp_path, project_name="Acme"))
+
+    hooks_path = tmp_path / ".codex" / "hooks.json"
+    value = json.loads(hooks_path.read_text(encoding="utf-8"))
+    assert value["hooks"]["SessionStart"][0]["hooks"][1]["timeout"] == 2
+    assert value["hooks"]["Stop"][0]["hooks"][0]["timeout"] == 2
+
+    repeated = initialization_previews(tmp_path, project_name="Acme")
+    assert all(item.changed is False for item in repeated)
+
+
 def test_initialization_rejects_conflicts_and_intervening_drift(
     tmp_path: Path,
 ) -> None:
@@ -170,14 +216,19 @@ def test_initialization_resumes_digest_bound_journal(tmp_path: Path) -> None:
     )
 
 
-def test_installed_hook_entrypoint_discovers_canonical_model(
+def test_installed_hook_entrypoint_discovers_canonical_model_from_nested_cwd(
     tmp_path: Path,
 ) -> None:
     apply_initialization(initialization_previews(tmp_path, project_name="Acme"))
+    nested = tmp_path / "docs" / "design"
+    nested.mkdir(parents=True)
     event = {
-        "cwd": str(tmp_path),
+        "cwd": str(nested),
         "tool_name": "Write",
-        "tool_input": {"file_path": "ordinary.txt", "content": "allowed"},
+        "tool_input": {
+            "file_path": str(nested / "ordinary.txt"),
+            "content": "allowed",
+        },
     }
     environment = dict(os.environ)
     environment.pop("PROJECTLORE_MODEL", None)

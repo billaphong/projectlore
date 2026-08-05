@@ -112,8 +112,9 @@ def _process_is_alive(pid: int) -> bool:
 class WorkflowTransaction:
     """Stage one immutable generation and activate it exactly once."""
 
-    def __init__(self, store: KnowledgeStore) -> None:
+    def __init__(self, store: KnowledgeStore, *, timeout: float = 5.0) -> None:
         self.store = store
+        self.timeout = timeout
 
     def commit(
         self,
@@ -122,9 +123,13 @@ class WorkflowTransaction:
         state: GenerationState = GenerationState.PENDING,
     ) -> Generation:
         lock = self.store.directory / "locks" / "workflow.lock"
-        with FileLock(lock):
+        with FileLock(lock, timeout=self.timeout):
+            predecessor = self.store.current_generation()
             current = self.store.current_root()
-            generation = self.store.stage((*current.members, *tuple(members)), state)
+            combined = tuple(sorted(set((*current.members, *tuple(members)))))
+            if combined == current.members and state is predecessor.state:
+                return predecessor
+            generation = self.store.stage_after(predecessor, combined, state)
             self.store.activate(generation.generation_id)
             return generation
 

@@ -97,6 +97,17 @@ def test_transaction_commit_is_a_complete_generation(tmp_path: Path) -> None:
     assert store.current_generation().state is GenerationState.OUTSTANDING
 
 
+def test_transaction_duplicate_commit_is_idempotent(tmp_path: Path) -> None:
+    store = KnowledgeStore(tmp_path)
+    store.initialize()
+    evidence = store.put_object("example:evidence:1", {"path": "AGENTS.md"})
+    first = WorkflowTransaction(store).commit([evidence])
+    repeated = WorkflowTransaction(store).commit([evidence])
+
+    assert repeated == first
+    assert store.current_generation().sequence == 1
+
+
 def test_concurrent_commits_preserve_both_members(tmp_path: Path) -> None:
     store = KnowledgeStore(tmp_path)
     store.initialize()

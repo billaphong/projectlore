@@ -8,12 +8,17 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from projectlore.acquisition.passive import capture_scan, next_packet
+from projectlore.acquisition.passive import capture_hook_event, next_packet
 from projectlore.acquisition.review import recover_commit_claim
+from projectlore.acquisition.transactions import LockTimeout
 
 MAX_INPUT_BYTES = 1_048_576
 MAX_DEPTH = 32
 MAX_NODES = 100_000
+# Clients allow three seconds and the acquisition contract reserves one second of
+# margin around its two-second hook boundary.  At most two sequential lock waits
+# occur, so 250 ms per wait leaves at least 1.5 seconds for startup and model I/O.
+HOOK_LOCK_TIMEOUT_SECONDS = 0.25
 
 
 def _bounded_shape(value: Any, *, depth: int = 0) -> int:
@@ -58,7 +63,15 @@ def run(
         raise ValueError("hook cwd is outside the configured repository")
     event = value.get("hook_event_name") or value.get("event")
     if event == "Stop":
-        signal = capture_scan(root)
+        session_id = value.get("session_id")
+        if not isinstance(session_id, str):
+            raise ValueError("hook field 'session_id' is required")
+        signal = capture_hook_event(
+            root,
+            client=client,
+            session_id=session_id,
+            lock_timeout=HOOK_LOCK_TIMEOUT_SECONDS,
+        )
         return {
             "captured": True,
             "client": client,
@@ -66,8 +79,8 @@ def run(
             "signal_id": signal.signal_id,
         }
     if event == "SessionStart":
-        recover_commit_claim(root)
-        packet = next_packet(root)
+        recover_commit_claim(root, lock_timeout=HOOK_LOCK_TIMEOUT_SECONDS)
+        packet = next_packet(root, lock_timeout=HOOK_LOCK_TIMEOUT_SECONDS)
         return {
             "captured": False,
             "client": client,
@@ -81,20 +94,37 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     raw = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
     if len(raw) > MAX_INPUT_BYTES:
-        return _advise("ProjectLore acquisition hook input exceeds 1 MiB.")
+        return _advise(
+            "ProjectLore acquisition hook input exceeds 1 MiB.", client=args.client
+        )
     try:
         value = json.loads(raw)
         if not isinstance(value, dict):
             raise ValueError("hook input must be a JSON object")
         result = run(value, client=args.client, repository=args.root)
+    except LockTimeout as error:
+        return _advise(
+            "PLKA3003: ProjectLore acquisition deferred because knowledge state "
+            f"is busy: {error}",
+            client=args.client,
+        )
     except (json.JSONDecodeError, OSError, RuntimeError, ValueError) as error:
-        return _advise(f"ProjectLore acquisition unavailable: {error}")
-    print(json.dumps(result, separators=(",", ":")))
+        return _advise(
+            f"ProjectLore acquisition unavailable: {error}", client=args.client
+        )
+    print(
+        json.dumps(
+            {"continue": True} if args.client == "codex_cli" else result,
+            separators=(",", ":"),
+        )
+    )
     return 0
 
 
-def _advise(message: str) -> int:
+def _advise(message: str, *, client: str) -> int:
     print(message[:1000], file=sys.stderr)
+    if client == "codex_cli":
+        print('{"continue":true}')
     return 0
 
 

@@ -98,6 +98,24 @@ def test_pre_action_hook_propagates_shutdown(
         hook_module.main()
 
 
+def test_pre_action_hook_does_not_compile_model_for_irrelevant_tool_input(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model = tmp_path / "projectlore.yaml"
+    model.write_text(MODEL.read_text(encoding="utf-8"), encoding="utf-8")
+
+    def unexpected_compile(*args: object, **kwargs: object) -> object:
+        raise AssertionError("irrelevant tool input compiled the project model")
+
+    monkeypatch.setattr(hook_module, "ModelService", unexpected_compile)
+    monkeypatch.setattr(
+        hook_module.sys,
+        "stdin",
+        _stdin({"cwd": str(tmp_path), "tool_input": {"command": "node app.mjs"}}),
+    )
+    assert hook_module.main() == 0
+
+
 def test_source_gate_propagates_shutdown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

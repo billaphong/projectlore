@@ -104,7 +104,7 @@ def _validate_client_configs(root: Path, model_path: Path) -> dict[str, bool]:
     expected_hook = {
         "type": "command",
         "command": "projectlore-hook",
-        "timeout": 3,
+        "timeout": 10,
         "statusMessage": "Checking ProjectLore policy",
     }
     expected_scope_hook = {
@@ -228,20 +228,21 @@ async def _probe_mcp(
 def _probe_hook(
     root: Path, model_path: Path, command: str
 ) -> dict[str, object]:
+    probe_cwd = root / ".claude"
     event = {
-        "cwd": str(root),
+        "cwd": str(probe_cwd),
         "tool_name": "Write",
         "tool_input": {
-            "file_path": str(root / "doctor.projectlore-policy.json"),
+            "file_path": str(probe_cwd / "doctor.projectlore-policy.json"),
             "content": "{invalid-json",
         },
     }
     environment = dict(os.environ)
-    environment["PROJECTLORE_MODEL"] = str(model_path.resolve())
+    environment.pop("PROJECTLORE_MODEL", None)
     try:
         result = subprocess.run(
             [_entrypoint(command)],
-            cwd=root,
+            cwd=probe_cwd,
             input=json.dumps(event),
             text=True,
             capture_output=True,
@@ -251,7 +252,12 @@ def _probe_hook(
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         return {"returncode": None, "stderr": str(error)}
-    return {"returncode": result.returncode, "stderr": result.stderr[:1000]}
+    return {
+        "returncode": result.returncode,
+        "stderr": result.stderr[:1000],
+        "cwd": str(probe_cwd),
+        "model_discovery": "ancestor",
+    }
 
 
 def _version(command: str, argument: str) -> str | None:
